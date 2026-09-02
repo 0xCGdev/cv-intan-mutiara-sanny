@@ -22,7 +22,7 @@ document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
 // Contact Form
 // =============================
 
-const CONTACT_API_URL = "http://localhost:3001/api/contact";
+const CONTACT_API_URL = "https://api.unlimited4decor.com/api/contact";
 
 const contactForm = document.getElementById("contactForm");
 const submitBtn = document.getElementById("contactSubmitBtn");
