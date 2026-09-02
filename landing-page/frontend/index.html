@@ -501,25 +501,19 @@
                         <div><strong>Workshop</strong><span> West Java, Indonesia — visits by appointment</span></div>
                     </div>
                 </div>
-                <form
-                    class="form-card reveal"
-                    onsubmit="
-                        event.preventDefault();
-                        this.querySelector('.submit-msg').style.display = 'block';
-                    "
-                >
+                <form class="form-card reveal" id="contactForm">
                     <div class="form-row">
-                        <div class="field"><label>Full name</label><input type="text" placeholder="Your name" required /></div>
-                        <div class="field"><label>Company</label><input type="text" placeholder="Company name" /></div>
+                        <div class="field"><label>Full name</label><input type="text" name="name" placeholder="Your name" required /></div>
+                        <div class="field"><label>Company</label><input type="text" name="company" placeholder="Company name" /></div>
                     </div>
                     <div class="form-row">
-                        <div class="field"><label>Email</label><input type="email" placeholder="you@company.com" required /></div>
-                        <div class="field"><label>Country</label><input type="text" placeholder="Destination country" /></div>
+                        <div class="field"><label>Email</label><input type="email" name="email" placeholder="you@company.com" required /></div>
+                        <div class="field"><label>Country</label><input type="text" name="country" placeholder="Destination country" /></div>
                     </div>
                     <div class="form-row">
                         <div class="field full">
                             <label>Product interest</label>
-                            <select>
+                            <select name="productInterest">
                                 <option>Wall Hangings &amp; Macramé</option>
                                 <option>Woven Baskets &amp; Trays</option>
                                 <option>Wooden Bowls &amp; Boards</option>
@@ -531,10 +525,17 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="field full"><label>Message</label><textarea rows="4" placeholder="Tell us about the volumes and timeline you have in mind."></textarea></div>
+                        <div class="field full"><label>Message</label><textarea name="message" rows="4" placeholder="Tell us about the volumes and timeline you have in mind."></textarea></div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Request a Quote</button>
-                    <p class="submit-msg" style="display: none; font-size: 12.5px; color: var(--green-bright); margin-top: 12px; text-align: center">Thank you — our export team will reach out shortly.</p>
+
+                    <!-- Honeypot: field ini disembunyikan dari manusia lewat CSS, tapi biasanya diisi oleh bot -->
+                    <div style="position: absolute; left: -9999px" aria-hidden="true">
+                        <label>Leave this field empty</label>
+                        <input type="text" name="honeypot" tabindex="-1" autocomplete="off" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Request a Quote</button>
+                    <p class="submit-msg" id="contactSubmitMsg" style="display: none; font-size: 12.5px; margin-top: 12px; text-align: center"></p>
                 </form>
             </div>
         </section>
