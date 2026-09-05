@@ -26,10 +26,20 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare website
+        run: |
+          mkdir -p _site/scanner
+
+          cp -R landing-page/frontend/. _site/
+
+          cp upc-scanner/index.html _site/scanner/
+          cp -R upc-scanner/css _site/scanner/
+          cp -R upc-scanner/js _site/scanner/
+
       - name: Upload frontend
         uses: actions/upload-pages-artifact@v4
         with:
-          path: './landing-page/frontend'
+          path: './_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
