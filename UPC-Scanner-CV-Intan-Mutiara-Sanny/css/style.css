@@ -685,3 +685,38 @@ button:disabled {
         font-size: 17px;
     }
 }
+
+/* =====================================================
+   CAMERA BARCODE SCANNER — FINAL
+===================================================== */
+.camera-box {
+  position: relative;
+  width: min(100%, 420px);
+  aspect-ratio: 1 / 1;
+  margin: 12px auto 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: 0 8px 25px rgba(16,55,36,.12);
+}
+.camera-box .quagga-reader,
+.camera-box video,
+.camera-box canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.camera-box video { object-fit: cover !important; object-position: center !important; display:block !important; background:transparent !important; }
+.camera-box canvas { pointer-events:none; z-index:5; }
+.barcode-overlay { position:absolute; inset:0; z-index:10; pointer-events:none; background:linear-gradient(to bottom,rgba(0,0,0,.22),rgba(0,0,0,.04) 30%,transparent 30%,transparent 70%,rgba(0,0,0,.04) 70%,rgba(0,0,0,.22)); }
+.barcode-frame { position:absolute; z-index:30; left:8%; right:8%; top:30%; height:40%; pointer-events:none; }
+.barcode-corner { position:absolute; width:32px; height:32px; border-color:#00e676; border-style:solid; filter:drop-shadow(0 0 5px rgba(0,230,118,.8)); }
+.barcode-corner.tl {top:0;left:0;border-width:4px 0 0 4px;border-radius:8px 0 0 0}
+.barcode-corner.tr {top:0;right:0;border-width:4px 4px 0 0;border-radius:0 8px 0 0}
+.barcode-corner.bl {bottom:0;left:0;border-width:0 0 4px 4px;border-radius:0 0 0 8px}
+.barcode-corner.br {bottom:0;right:0;border-width:0 4px 4px 0;border-radius:0 0 8px 0}
+.barcode-laser { position:absolute; z-index:40; left:3%; right:3%; top:0; height:3px; border-radius:3px; background:linear-gradient(90deg,transparent,#00e676,#fff,#00e676,transparent); box-shadow:0 0 6px #00e676,0 0 14px rgba(0,230,118,.8); animation:barcodeLaserMove 1.8s ease-in-out infinite alternate; }
+@keyframes barcodeLaserMove { from {top:0;opacity:.7} to {top:calc(100% - 3px);opacity:1} }
+.camera-help { text-align:center; line-height:1.5; }
+@media (min-width:700px) { .camera-box { width:420px; height:420px; aspect-ratio:auto; } }

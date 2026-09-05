@@ -1,47 +1,55 @@
-import { state, setToken } from './state.js';
+import { state, setToken } from "./state.js";
 
-// PHP proxy berada di hosting yang sama dengan HTML.
-// PHP yang meneruskan request ke Google Apps Script sehingga browser
-// tidak terkena masalah CORS dari Apps Script.
-const API_URL = './api/api.php';
+const API_URL = "https://script.google.com/macros/s/AKfycbx5CTEKU0ewdtYPhbFHxNJSM5T-anCpcsb_o4WSG3uz8xsP5zK0VbLNG72OKQbs6W49/exec";
 
 export async function api(action, data = {}, useToken = true) {
-  let response;
+    const payload = {
+        action: action,
+        token: useToken ? state.token : "",
+        data: data,
+    };
 
-  try {
-    response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        action,
-        token: useToken ? state.token : '',
-        data
-      })
-    });
-  } catch (e) {
-    throw new Error('Tidak dapat terhubung ke API PHP. Periksa hosting dan koneksi internet.');
-  }
+    let response;
 
-  const text = await response.text();
-  let result;
+    try {
+        response = await fetch(API_URL, {
+            method: "POST",
 
-  try {
-    result = JSON.parse(text);
-  } catch (e) {
-    console.error('Respons API bukan JSON:', text);
-    throw new Error('Server mengembalikan respons yang bukan JSON. Periksa api/api.php.');
-  }
+            redirect: "follow",
 
-  if (!response.ok) {
-    throw new Error(result.message || ('HTTP ' + response.status));
-  }
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+            },
 
-  if (!result.success && result.code === 'SESSION_EXPIRED') {
-    setToken('');
-  }
+            body: JSON.stringify(payload),
+        });
+    } catch (error) {
+        console.error("API connection error:", error);
 
-  return result;
+        throw new Error("Tidak dapat terhubung ke Google Apps Script.");
+    }
+
+    const text = await response.text();
+
+    console.log("API response:", text);
+
+    let result;
+
+    try {
+        result = JSON.parse(text);
+    } catch (error) {
+        console.error("Response bukan JSON:", text);
+
+        throw new Error("Google Apps Script mengembalikan respons yang bukan JSON.");
+    }
+
+    if (!response.ok) {
+        throw new Error(result.message || `HTTP ${response.status}`);
+    }
+
+    if (!result.success && result.code === "SESSION_EXPIRED") {
+        setToken("");
+    }
+
+    return result;
 }

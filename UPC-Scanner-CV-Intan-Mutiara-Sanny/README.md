@@ -1,43 +1,34 @@
-# UPC Scanner — Mobile First v3
+# UPC Scanner — CV Intan Mutiara Sanny
+
+Web scanner UPC dengan:
+- Scanner Bluetooth/USB HID keyboard
+- Kamera HP untuk barcode 1D (UPC/EAN) memakai Quagga2
+- Login ADMIN/PETUGAS
+- Google Apps Script + Google Sheets sebagai backend
+- Rekap harian otomatis
+- Log scan
+- Master Data
+- Manajemen petugas
 
 ## Struktur
-- `index.html` — HTML/tampilan
-- `css/style.css` — CSS
-- `js/state.js` — state & helper DOM
-- `js/api.js` — komunikasi ke API proxy
-- `js/auth.js` — login/logout/session
-- `js/scanner.js` — scanner keyboard + kamera
-- `js/dashboard.js` — ringkasan & daftar scan
-- `js/master.js` — Master Data
-- `js/users.js` — Petugas
-- `js/logs.js` — Log Scan
-- `api/api.php` — proxy hosting ke Apps Script
-- `backend/Code.gs` — backend Google Apps Script
 
-## Urutan pemasangan
-1. Di Google Apps Script, buka project backend yang terhubung ke Google Sheet.
-2. Hapus kode lama dan isi dengan `backend/Code.gs`.
-3. Jalankan `setup()` satu kali dan izinkan akses.
-4. Deploy > New deployment > Web app.
-5. Execute as: Me.
-6. Who has access: Anyone.
-7. Salin URL `/exec` hasil deployment.
-8. Buka `api/api.php` dan ganti `PASTE_APPS_SCRIPT_WEB_APP_URL_HERE` dengan URL tersebut.
-9. Upload seluruh isi folder ini ke hosting dengan struktur folder tetap.
-10. Pastikan hosting mendukung PHP + cURL.
-11. Buka website. Login awal: `admin` / `admin123`.
+- `index.html` — halaman utama
+- `css/style.css` — seluruh tampilan
+- `js/` — modul frontend
+- `api/api.php` — proxy PHP ke Google Apps Script
+- `backend/Code.gs` — source backend Google Apps Script
 
-## Penting
-- Jangan membuka `index.html` langsung dari komputer dengan double-click. Upload ke hosting/HTTPS.
-- Kamera membutuhkan HTTPS.
-- Jika login gagal, buka browser DevTools > Network dan cek request `api/api.php`. Pesan error di halaman sekarang dibuat lebih spesifik.
-- Jangan mengubah `PASSWORD_HASH` secara manual. Password dibuat oleh backend.
+## Backend
 
+Setelah mengganti `backend/Code.gs` di project Apps Script:
+1. Deploy sebagai Web App.
+2. Execute as: Me.
+3. Access: Anyone.
+4. Jalankan `setup()` sekali dari editor Apps Script.
+5. Pastikan sheet `USERS`, `MASTER_DATA`, dan `LOG_SCAN` tersedia.
 
-## Arsitektur koneksi terbaru
-Frontend HTML/JS tetap di-host di hosting. Browser memanggil `api/api.php`, kemudian PHP meneruskan request ke Google Apps Script Web App untuk menghindari masalah CORS.
+Login awal dibuat oleh `setup()`:
+- Username: `admin`
+- Password: `admin123`
 
-- `index.html`, `css/`, `js/` = frontend.
-- `api/api.php` = proxy PHP ke Apps Script.
-- `backend/Code.gs` = backend Apps Script + Google Sheets.
-- Hosting PHP harus mendukung cURL.
+Segera ubah password setelah login.

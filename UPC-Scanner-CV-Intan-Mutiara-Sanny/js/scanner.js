@@ -1,15 +1,23 @@
 import { state, $, busy, toast } from "./state.js";
+import { api } from "./api.js";
 
 import { updateStats, showLast, showLastError, renderToday } from "./dashboard.js";
 
-import { api } from "./api.js";
+/* =========================
+   VARIABEL SCANNER
+========================= */
 
-/* =========================================================
-   FOCUS INPUT SCANNER
-========================================================= */
+let lastDetected = "";
+let lastDetectedAt = 0;
+
+/* =========================
+   FOCUS SCANNER
+========================= */
 
 export function focusScan() {
     setTimeout(() => {
+        if (state.cameraRunning) return;
+
         const input = $("scanInput");
 
         if (input) {
@@ -19,25 +27,21 @@ export function focusScan() {
     }, 80);
 }
 
-/* =========================================================
-   PROSES SCAN UTAMA
-   Dipakai oleh:
-   - USB scanner
-   - Bluetooth scanner
-   - Kamera
-========================================================= */
+/* =========================
+   SCAN UTAMA
+========================= */
 
 export async function doScan(upc) {
     const value = String(upc || "").trim();
 
-    if (!value) {
+    if (!value || !/^\d+$/.test(value)) {
         return;
     }
 
-    const input = $("scanInput");
+    const scanInput = $("scanInput");
 
-    if (input) {
-        input.value = "";
+    if (scanInput) {
+        scanInput.value = "";
     }
 
     busy(true);
@@ -48,6 +52,10 @@ export async function doScan(upc) {
         });
 
         if (!r.success) {
+            if (r.code === "SESSION_EXPIRED") {
+                window.dispatchEvent(new Event("scanner:stop"));
+            }
+
             showLastError(r.message || "Scan gagal");
 
             toast(r.message || "Scan gagal", true);
@@ -63,11 +71,11 @@ export async function doScan(upc) {
 
         renderToday();
 
-        toast("✓ " + (r.item?.name || "Barang") + " · Qty " + (r.item?.qty ?? 1));
+        toast(`✓ ${r.item?.name || "Barang"} · Qty ${r.item?.qty ?? 1}`);
     } catch (e) {
         console.error("Scan error:", e);
 
-        toast(e?.message || "Tidak dapat terhubung ke server.", true);
+        toast(e.message || "Tidak dapat terhubung ke server.", true);
     } finally {
         busy(false);
 
@@ -75,537 +83,194 @@ export async function doScan(upc) {
     }
 }
 
-/* =========================================================
-   OPEN CAMERA
-========================================================= */
+/* =========================
+   QUAGGA
+========================= */
 
-export async function openCamera() {
-    console.log("Membuka scanner barcode...");
+function getQuagga() {
+    return window.Quagga || window.quagga || null;
+}
 
-    /* -----------------------------------------------------
-       CEK QUAGGA
-    ----------------------------------------------------- */
+/* =========================
+   PILIH KAMERA
+========================= */
 
-    if (typeof window.Quagga === "undefined") {
-        console.error("Quagga tidak tersedia.");
+async function chooseCamera() {
+    const Quagga = getQuagga();
 
-        toast("Modul barcode scanner belum termuat.", true);
-
-        return;
+    if (!Quagga || !Quagga.CameraAccess || !Quagga.CameraAccess.enumerateVideoDevices) {
+        return null;
     }
 
-    /* -----------------------------------------------------
-       HENTIKAN SCANNER SEBELUMNYA
-    ----------------------------------------------------- */
+    try {
+        const devices = await Quagga.CameraAccess.enumerateVideoDevices();
 
-    await stopCamera();
+        if (!devices || !devices.length) {
+            return null;
+        }
 
-    /* -----------------------------------------------------
-       AMBIL MODAL
-    ----------------------------------------------------- */
+        return devices.find((device) => /back|rear|environment|webcam|integrated|camera/i.test(device.label || "")) || devices[0];
+    } catch (e) {
+        console.warn("Gagal membaca daftar kamera:", e);
 
-    const modal = $("modal");
-
-    const modalContent = $("modalContent");
-
-    if (!modal || !modalContent) {
-        toast("Modal kamera tidak ditemukan.", true);
-
-        return;
+        return null;
     }
+}
 
-    /* =====================================================
-       HTML CAMERA
-    ===================================================== */
+/* =========================
+   HTML CAMERA MODAL
+========================= */
 
-    modalContent.innerHTML = `
-
-        <style>
-
-            /* =============================================
-               WRAPPER
-            ============================================= */
-
-            .barcode-camera-wrapper {
-
-                width: 100%;
-
-                max-width: 430px;
-
-                margin: 0 auto;
-
-            }
-
-
-            /* =============================================
-               CAMERA PERSEGI
-            ============================================= */
-
-            .barcode-camera {
-
-                position: relative;
-
-                width: 100%;
-
-                aspect-ratio: 1 / 1;
-
-                overflow: hidden;
-
-                background: #000;
-
-                border-radius: 18px;
-
-                margin: 12px auto;
-
-                box-shadow:
-                    0 10px 30px
-                    rgba(0,0,0,.18);
-
-            }
-
-
-            /* =============================================
-               VIDEO
-            ============================================= */
-
-            .barcode-camera video {
-
-                position: absolute !important;
-
-                top: 0 !important;
-                left: 0 !important;
-
-                width: 100% !important;
-                height: 100% !important;
-
-                object-fit: contain !important;
-
-                display: block !important;
-
-                background: #000;
-
-            }
-
-
-            /* =============================================
-               CANVAS QUAGGA
-            ============================================= */
-
-            .barcode-camera canvas {
-
-                position: absolute !important;
-
-                top: 0 !important;
-                left: 0 !important;
-
-                width: 100% !important;
-                height: 100% !important;
-
-                pointer-events: none;
-
-            }
-
-
-            /* =============================================
-               OVERLAY
-            ============================================= */
-
-            .barcode-overlay {
-
-                position: absolute;
-
-                inset: 0;
-
-                z-index: 10;
-
-                pointer-events: none;
-
-                background:
-
-                    linear-gradient(
-                        to bottom,
-                        rgba(0,0,0,.28) 0%,
-                        rgba(0,0,0,.08) 28%,
-                        transparent 28%,
-                        transparent 72%,
-                        rgba(0,0,0,.08) 72%,
-                        rgba(0,0,0,.28) 100%
-                    );
-
-            }
-
-
-            /* =============================================
-               FRAME SCANNING
-            ============================================= */
-
-            .barcode-frame {
-
-                position: absolute;
-
-                z-index: 30;
-
-                left: 8%;
-
-                right: 8%;
-
-                top: 30%;
-
-                height: 40%;
-
-                pointer-events: none;
-
-            }
-
-
-            /* =============================================
-               CORNER
-            ============================================= */
-
-            .barcode-corner {
-
-                position: absolute;
-
-                width: 34px;
-
-                height: 34px;
-
-                border-color: #00e676;
-
-                border-style: solid;
-
-                filter:
-                    drop-shadow(
-                        0 0 5px
-                        rgba(0,230,118,.8)
-                    );
-
-            }
-
-
-            .barcode-corner.tl {
-
-                top: 0;
-                left: 0;
-
-                border-width:
-                    4px 0 0 4px;
-
-                border-radius:
-                    8px 0 0 0;
-
-            }
-
-
-            .barcode-corner.tr {
-
-                top: 0;
-                right: 0;
-
-                border-width:
-                    4px 4px 0 0;
-
-                border-radius:
-                    0 8px 0 0;
-
-            }
-
-
-            .barcode-corner.bl {
-
-                bottom: 0;
-                left: 0;
-
-                border-width:
-                    0 0 4px 4px;
-
-                border-radius:
-                    0 0 0 8px;
-
-            }
-
-
-            .barcode-corner.br {
-
-                bottom: 0;
-                right: 0;
-
-                border-width:
-                    0 4px 4px 0;
-
-                border-radius:
-                    0 0 8px 0;
-
-            }
-
-
-            /* =============================================
-               LASER SCANNER
-            ============================================= */
-
-            .barcode-laser {
-
-                position: absolute;
-
-                left: 3%;
-
-                right: 3%;
-
-                top: 0;
-
-                height: 3px;
-
-                z-index: 40;
-
-                border-radius: 3px;
-
-                background:
-
-                    linear-gradient(
-                        90deg,
-                        transparent,
-                        #00e676,
-                        #ffffff,
-                        #00e676,
-                        transparent
-                    );
-
-                box-shadow:
-
-                    0 0 6px #00e676,
-
-                    0 0 14px
-                    rgba(0,230,118,.8),
-
-                    0 0 24px
-                    rgba(0,230,118,.45);
-
-                animation:
-
-                    barcodeLaserMove
-                    1.8s
-                    ease-in-out
-                    infinite alternate;
-
-            }
-
-
-            @keyframes barcodeLaserMove {
-
-                0% {
-
-                    top: 0;
-
-                    opacity: .7;
-
-                }
-
-                100% {
-
-                    top: calc(100% - 3px);
-
-                    opacity: 1;
-
-                }
-
-            }
-
-
-            /* =============================================
-               STATUS
-            ============================================= */
-
-            .barcode-status {
-
-                text-align: center;
-
-                font-size: 14px;
-
-                font-weight: 600;
-
-                color: #075c3b;
-
-                margin-top: 10px;
-
-            }
-
-
-            /* =============================================
-               HELP
-            ============================================= */
-
-            .barcode-help {
-
-                text-align: center;
-
-                font-size: 12px;
-
-                line-height: 1.5;
-
-                color: #6d7b74;
-
-                padding:
-
-                    4px 14px 8px;
-
-            }
-
-        </style>
-
-
+function cameraMarkup() {
+    return `
         <div class="modal-head">
 
-            <h3>
-                Scan Barcode
-            </h3>
-
+            <h3>Scan dengan Kamera</h3>
 
             <button
                 class="close"
-                id="closeCameraBtn"
-                type="button"
+                data-action="close-modal"
                 aria-label="Tutup"
+                type="button"
             >
                 ×
             </button>
 
         </div>
 
-
-        <div
-            class="barcode-camera-wrapper"
-        >
+        <div class="camera-box">
 
             <div
-                id="quaggaCamera"
-                class="barcode-camera"
-            >
+                id="quaggaReader"
+                class="quagga-reader"
+            ></div>
 
-                <div
-                    class="barcode-overlay"
-                ></div>
-
-
-                <div
-                    class="barcode-frame"
-                >
-
-                    <div
-                        class="barcode-corner tl"
-                    ></div>
-
-                    <div
-                        class="barcode-corner tr"
-                    ></div>
-
-                    <div
-                        class="barcode-corner bl"
-                    ></div>
-
-                    <div
-                        class="barcode-corner br"
-                    ></div>
-
-
-                    <div
-                        class="barcode-laser"
-                    ></div>
-
-                </div>
-
-            </div>
-
+            <div class="barcode-overlay"></div>
 
             <div
-                id="cameraStatus"
-                class="barcode-status"
-            >
-                Mengaktifkan kamera...
-            </div>
-
-
-            <div
-                class="barcode-help"
+                class="barcode-frame"
+                aria-hidden="true"
             >
 
-                Arahkan barcode UPC
-                secara horizontal
-                ke dalam bingkai.
+                <span class="barcode-corner tl"></span>
+                <span class="barcode-corner tr"></span>
+                <span class="barcode-corner bl"></span>
+                <span class="barcode-corner br"></span>
 
-                <br>
-
-                Pastikan barcode terlihat jelas
-                dan tidak terlalu dekat.
+                <span class="barcode-laser"></span>
 
             </div>
 
         </div>
 
+        <div
+            class="camera-status"
+            id="cameraStatus"
+        >
+            Mencari barcode...
+        </div>
+
+        <div class="camera-help">
+            Posisikan barcode mendatar di dalam kotak hijau.
+            Pastikan cukup terang dan barcode terlihat tajam.
+        </div>
     `;
+}
 
-    modal.classList.remove("hidden");
+/* =========================
+   PERBAIKI TAMPILAN KAMERA
+========================= */
 
-    /* -----------------------------------------------------
-       CLOSE BUTTON
-    ----------------------------------------------------- */
+function fixCameraDisplay() {
+    const box = document.querySelector(".camera-box");
 
-    const closeButton = $("closeCameraBtn");
-
-    if (closeButton) {
-        closeButton.addEventListener("click", () => {
-            closeModal();
-        });
+    if (!box) {
+        return;
     }
 
-    const container = $("quaggaCamera");
+    const video = box.querySelector("video");
 
-    const status = $("cameraStatus");
+    const canvas = box.querySelector("canvas");
 
-    if (!container) {
-        toast("Area kamera tidak ditemukan.", true);
+    if (video) {
+        video.style.width = "100%";
+        video.style.height = "100%";
+        video.style.objectFit = "cover";
+        video.style.objectPosition = "center center";
+
+        video.setAttribute("playsinline", "true");
+    }
+
+    if (canvas) {
+        canvas.style.position = "absolute";
+        canvas.style.inset = "0";
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.pointerEvents = "none";
+    }
+}
+
+/* =========================
+   OPEN CAMERA
+========================= */
+
+export async function openCamera() {
+    const Quagga = getQuagga();
+
+    if (!Quagga) {
+        toast("Scanner kamera belum termuat. Periksa koneksi internet.", true);
 
         return;
     }
 
-    let detected = false;
+    await stopCamera();
+
+    const modal = $("modal");
+    const content = $("modalContent");
+
+    if (!modal || !content) {
+        return;
+    }
+
+    content.innerHTML = cameraMarkup();
+
+    modal.classList.remove("hidden");
 
     state.cameraRunning = true;
 
-    /* =====================================================
-       CARI KAMERA
-    ===================================================== */
+    const status = $("cameraStatus");
 
-    let devices = [];
+    const device = await chooseCamera();
 
-    try {
-        devices = await window.Quagga.CameraAccess.enumerateVideoDevices();
-    } catch (e) {
-        console.warn("Tidak dapat membaca daftar kamera:", e);
+    /* =========================
+       CAMERA CONSTRAINTS
+    ========================= */
+
+    const constraints = {
+        width: {
+            min: 640,
+            ideal: 1280,
+        },
+
+        height: {
+            min: 480,
+            ideal: 720,
+        },
+    };
+
+    if (device && device.deviceId) {
+        constraints.deviceId = {
+            exact: device.deviceId,
+        };
+    } else {
+        constraints.facingMode = {
+            ideal: "environment",
+        };
     }
 
-    console.log("Camera devices:", devices);
-
-    let selectedDeviceId = null;
-
-    if (Array.isArray(devices) && devices.length > 0) {
-        /*
-         * Prioritaskan webcam internal.
-         */
-
-        const preferred = devices.find((device) => {
-            const label = String(device.label || "").toLowerCase();
-
-            return label.includes("webcam") || label.includes("integrated") || label.includes("camera");
-        });
-
-        selectedDeviceId = preferred ? preferred.deviceId : devices[0].deviceId;
-    }
-
-    console.log("Camera terpilih:", selectedDeviceId);
-
-    /* =====================================================
-       QUAGGA CONFIGURATION
-    ===================================================== */
+    /* =========================
+       QUAGGA CONFIG
+    ========================= */
 
     const config = {
         inputStream: {
@@ -613,33 +278,14 @@ export async function openCamera() {
 
             type: "LiveStream",
 
-            target: container,
+            target: document.querySelector("#quaggaReader"),
 
-            constraints: {
-                /*
-                 * Resolusi kamera.
-                 */
-
-                width: {
-                    min: 640,
-
-                    ideal: 1280,
-                },
-
-                height: {
-                    min: 480,
-
-                    ideal: 720,
-                },
-            },
+            constraints,
 
             area: {
                 top: "5%",
-
                 right: "5%",
-
                 left: "5%",
-
                 bottom: "5%",
             },
         },
@@ -647,346 +293,162 @@ export async function openCamera() {
         locate: true,
 
         locator: {
-            /*
-             * Medium biasanya lebih
-             * stabil untuk webcam laptop.
-             */
-
             patchSize: "medium",
-
             halfSample: false,
         },
 
         frequency: 10,
 
         decoder: {
-            readers: [
-                /*
-                 * PRIORITAS UPC
-                 */
-
-                "upc_reader",
-
-                "upc_e_reader",
-
-                "ean_reader",
-
-                "ean_8_reader",
-            ],
+            readers: ["upc_reader", "upc_e_reader", "ean_reader", "ean_8_reader"],
 
             multiple: false,
         },
     };
 
-    /*
-     * Jika device berhasil ditemukan,
-     * gunakan deviceId.
-     */
-
-    if (selectedDeviceId) {
-        config.inputStream.constraints.deviceId = selectedDeviceId;
-    }
-
-    console.log("Quagga config:", config);
-
-    /* =====================================================
+    /* =========================
        BARCODE DETECTED
-    ===================================================== */
+    ========================= */
 
-    const handleDetected = async function (result) {
+    const detected = async (result) => {
         if (!state.cameraRunning) {
             return;
         }
 
-        if (detected) {
+        const code = String(result?.codeResult?.code || "").trim();
+
+        if (!/^\d{6,13}$/.test(code)) {
             return;
         }
 
-        if (!result || !result.codeResult) {
-            return;
-        }
-
-        let code = result.codeResult.code;
-
-        if (!code) {
-            return;
-        }
-
-        code = String(code).trim();
+        const now = Date.now();
 
         /*
-         * UPC/EAN harus angka.
+         * Hindari barcode yang sama
+         * terbaca berkali-kali.
          */
 
-        if (!/^\d+$/.test(code)) {
+        if (code === lastDetected && now - lastDetectedAt < 1800) {
             return;
         }
 
-        /*
-         * Panjang barcode yang
-         * kita dukung.
-         */
+        lastDetected = code;
 
-        if (code.length !== 12 && code.length !== 6 && code.length !== 8 && code.length !== 13) {
-            return;
-        }
-
-        /*
-         * BERHASIL
-         */
-
-        detected = true;
-
-        console.log("================================");
-
-        console.log("BARCODE TERDETEKSI:");
-
-        console.log(code);
-
-        console.log("FORMAT:");
-
-        console.log(result.codeResult.format);
-
-        console.log("================================");
-
-        if (status) {
-            status.textContent = "✓ Barcode terdeteksi: " + code;
-        }
+        lastDetectedAt = now;
 
         state.cameraRunning = false;
 
-        /*
-         * Hentikan kamera.
-         */
+        if (status) {
+            status.textContent = `Barcode terdeteksi: ${code}`;
+        }
 
         await stopCamera();
 
-        /*
-         * Tutup modal.
-         */
-
         closeModal(false);
-
-        /*
-         * Kirim ke backend.
-         */
 
         await doScan(code);
     };
 
-    /* =====================================================
+    /* =========================
        START QUAGGA
-    ===================================================== */
-
-    console.log("Memulai Quagga...");
+    ========================= */
 
     try {
-        window.Quagga.init(config, function (error) {
-            if (error) {
-                console.error("Quagga init error:", error);
+        Quagga.onDetected(detected);
 
-                state.cameraRunning = false;
+        await new Promise((resolve, reject) => {
+            Quagga.init(config, (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
 
-                toast("Kamera gagal dijalankan: " + (error?.message || error), true);
-
-                return;
-            }
-
-            console.log("Quagga berhasil diinisialisasi.");
-
-            /*
-             * Pasang event deteksi.
-             */
-
-            window.Quagga.onDetected(handleDetected);
-
-            /*
-             * Jalankan kamera.
-             */
-
-            window.Quagga.start();
-
-            /*
-             * Rapikan tampilan setelah
-             * video dibuat Quagga.
-             */
-
-            setTimeout(fixCameraDisplay, 300);
-
-            setTimeout(fixCameraDisplay, 1000);
-
-            if (status) {
-                status.textContent = "Kamera aktif · Arahkan barcode ke bingkai";
-            }
-
-            console.log("Quagga scanner aktif.");
-
-            console.log("Menunggu barcode UPC...");
+                resolve();
+            });
         });
-    } catch (error) {
-        console.error("Quagga exception:", error);
+
+        Quagga.start();
+
+        setTimeout(fixCameraDisplay, 250);
+
+        setTimeout(fixCameraDisplay, 800);
+
+        if (status) {
+            status.textContent = "Kamera aktif · arahkan barcode ke kotak hijau";
+        }
+    } catch (e) {
+        console.error("Quagga start error:", e);
 
         state.cameraRunning = false;
 
         await stopCamera();
 
-        toast("Kamera gagal dijalankan: " + (error?.message || error), true);
+        toast(`Kamera gagal dijalankan: ${e?.message || e}`, true);
     }
 }
 
-/* =========================================================
-   PERBAIKI TAMPILAN VIDEO
-========================================================= */
-
-function fixCameraDisplay() {
-    const container = $("quaggaCamera");
-
-    if (!container) {
-        return;
-    }
-
-    /* -----------------------------------------------------
-       VIDEO
-    ----------------------------------------------------- */
-
-    const videos = container.querySelectorAll("video");
-
-    videos.forEach((video) => {
-        video.style.position = "absolute";
-
-        video.style.top = "0";
-
-        video.style.left = "0";
-
-        video.style.width = "100%";
-
-        video.style.height = "100%";
-
-        /*
-         * contain = seluruh gambar
-         * kamera terlihat.
-         */
-
-        video.style.objectFit = "contain";
-
-        video.style.display = "block";
-
-        video.style.background = "#000";
-
-        video.setAttribute("playsinline", "true");
-    });
-
-    /* -----------------------------------------------------
-       CANVAS
-    ----------------------------------------------------- */
-
-    const canvases = container.querySelectorAll("canvas");
-
-    canvases.forEach((canvas) => {
-        canvas.style.position = "absolute";
-
-        canvas.style.top = "0";
-
-        canvas.style.left = "0";
-
-        canvas.style.width = "100%";
-
-        canvas.style.height = "100%";
-
-        canvas.style.pointerEvents = "none";
-    });
-}
-
-/* =========================================================
+/* =========================
    STOP CAMERA
-========================================================= */
+========================= */
 
 export async function stopCamera() {
+    const Quagga = getQuagga();
+
     state.cameraRunning = false;
 
-    /* -----------------------------------------------------
-       QUAGGA STOP
-    ----------------------------------------------------- */
-
-    try {
-        if (typeof window.Quagga !== "undefined") {
-            try {
-                window.Quagga.offDetected();
-            } catch (e) {
-                // Abaikan.
-            }
-
-            try {
-                window.Quagga.stop();
-            } catch (e) {
-                console.warn("Quagga stop:", e);
-            }
+    if (Quagga) {
+        try {
+            Quagga.offDetected();
+        } catch (e) {
+            console.warn("Gagal melepas event Quagga:", e);
         }
-    } catch (e) {
-        console.warn("Gagal menghentikan Quagga:", e);
+
+        try {
+            Quagga.stop();
+        } catch (e) {
+            console.warn("Gagal menghentikan Quagga:", e);
+        }
     }
 
-    /* -----------------------------------------------------
-       STOP VIDEO TRACKS
-    ----------------------------------------------------- */
-
-    const container = $("quaggaCamera");
-
-    if (container) {
-        const videos = container.querySelectorAll("video");
-
-        videos.forEach((video) => {
-            try {
-                const stream = video.srcObject;
-
-                if (stream) {
-                    stream.getTracks().forEach((track) => {
-                        track.stop();
-                    });
-                }
-
-                video.srcObject = null;
-            } catch (e) {
-                // Abaikan.
+    document.querySelectorAll(".camera-box video").forEach((video) => {
+        try {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach((track) => {
+                    track.stop();
+                });
             }
-        });
-    }
+        } catch (e) {
+            console.warn("Gagal menghentikan track kamera:", e);
+        }
+    });
 }
 
-/* =========================================================
+/* =========================
    CLOSE MODAL
-========================================================= */
+========================= */
 
-export function closeModal(returnFocus = true) {
-    stopCamera();
+export function closeModal(keepCamera = false) {
+    if (!keepCamera) {
+        stopCamera();
+    }
 
     const modal = $("modal");
-
-    const modalContent = $("modalContent");
 
     if (modal) {
         modal.classList.add("hidden");
     }
-
-    if (modalContent) {
-        modalContent.innerHTML = "";
-    }
-
-    if (returnFocus) {
-        focusScan();
-    }
 }
 
-/* =========================================================
+/* =========================
    BIND SCANNER
-========================================================= */
+========================= */
 
 export function bindScanner() {
-    /* -----------------------------------------------------
-       USB / BLUETOOTH SCANNER
-    ----------------------------------------------------- */
-
     const scanInput = $("scanInput");
+
+    /* =========================
+       ENTER DARI BARCODE SCANNER
+    ========================= */
 
     if (scanInput) {
         scanInput.addEventListener("keydown", (e) => {
@@ -1003,78 +465,78 @@ export function bindScanner() {
             }
         });
 
-        /*
-         * Kembalikan fokus ke input
-         * setelah blur.
-         */
+        /* =========================
+           FOCUS KEMBALI
+        ========================= */
 
         scanInput.addEventListener("blur", () => {
             const modal = $("modal");
-
-            /*
-             * Jangan ambil fokus
-             * ketika kamera terbuka.
-             */
 
             if (modal && !modal.classList.contains("hidden")) {
                 return;
             }
 
-            setTimeout(focusScan, 200);
+            setTimeout(focusScan, 180);
         });
     }
 
-    /* -----------------------------------------------------
-       BUTTON CAMERA
-    ----------------------------------------------------- */
+    /* =========================
+       TOMBOL KAMERA
+    ========================= */
 
     const cameraBtn = $("cameraBtn");
 
     if (cameraBtn) {
-        cameraBtn.addEventListener("click", () => {
-            openCamera();
-        });
+        cameraBtn.addEventListener("click", openCamera);
     }
 
-    /* -----------------------------------------------------
-       BUTTON SCANNER
-    ----------------------------------------------------- */
+    /* =========================
+       TOMBOL MANUAL FOCUS
+    ========================= */
 
     const manualFocusBtn = $("manualFocusBtn");
 
     if (manualFocusBtn) {
-        manualFocusBtn.addEventListener("click", () => {
-            focusScan();
-        });
+        manualFocusBtn.addEventListener("click", focusScan);
     }
 
-    /* -----------------------------------------------------
-       GLOBAL STOP CAMERA
-    ----------------------------------------------------- */
+    /* =========================
+       EVENT STOP SCANNER
+    ========================= */
 
     window.addEventListener("scanner:stop", () => {
         stopCamera();
     });
 
-    /* -----------------------------------------------------
-       ESC = CLOSE CAMERA
-    ----------------------------------------------------- */
+    /* =========================
+       ESCAPE
+    ========================= */
 
     window.addEventListener("keydown", (e) => {
-        if (e.key !== "Escape") {
-            return;
-        }
-
-        const modal = $("modal");
-
-        if (modal && !modal.classList.contains("hidden")) {
+        if (e.key === "Escape" && !$("modal")?.classList.contains("hidden")) {
             closeModal();
         }
     });
 
-    /*
-     * Fokus awal ke input scanner.
-     */
+    /* =========================
+       CLICK CLOSE MODAL
+    ========================= */
+
+    const modal = $("modal");
+
+    if (modal) {
+        modal.addEventListener("click", (e) => {
+            const closeButton = e.target.closest('[data-action="close-modal"]');
+
+            if (closeButton) {
+                closeModal();
+            }
+        });
+    }
+
+    /* =========================
+       FOCUS AWAL
+    ========================= */
 
     focusScan();
 }
