@@ -1,71 +1,140 @@
 <!doctype html>
 <html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#155c3b">
-  <title>UPC Scanner — CV Intan Mutiara Sanny</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <section id="loginView" class="login">
-    <div class="login-card">
-      <div class="brand">
-        <div class="brand-mark">UPC</div>
-        <div><h1>UPC Scanner</h1><p>CV Intan Mutiara Sanny</p></div>
-      </div>
-      <label for="loginUser">Username</label>
-      <input id="loginUser" class="input" autocomplete="username" placeholder="Masukkan username">
-      <label for="loginPass">Password</label>
-      <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="Masukkan password">
-      <button id="loginBtn" class="btn btn-primary full">Masuk</button>
-      <div id="loginError" class="error-box hidden"></div>
-    </div>
-  </section>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#155c3b" />
+        <title>UPC Scanner — CV Intan Mutiara Sanny</title>
+        <link rel="stylesheet" href="css/style.css" />
+    </head>
+    <body>
+        <section id="loginView" class="login">
+            <div class="login-card">
+                <div class="brand">
+                    <div class="logo">
+                        <img src="assets/Images/logo/Logo.png" alt="logo cv intan mutiara sanny" />
+                    </div>
+                    <div>
+                        <h1>UPC Scanner</h1>
+                        <p>CV Intan Mutiara Sanny</p>
+                    </div>
+                </div>
+                <label for="loginUser">Username</label>
+                <input id="loginUser" class="input" autocomplete="username" placeholder="Masukkan username" />
+                <label for="loginPass">Password</label>
+                <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="Masukkan password" />
+                <button id="loginBtn" class="btn btn-primary full">Masuk</button>
+                <div id="loginError" class="error-box hidden"></div>
+            </div>
+        </section>
 
-  <section id="appView" class="app hidden">
-    <header class="topbar">
-      <div class="top-left"><div class="mini-logo">UPC</div><div><div class="top-title">UPC Scanner</div><div class="top-sub">CV Intan Mutiara Sanny</div></div></div>
-      <div class="user-area"><div id="userPill" class="user-pill"></div><button id="logoutBtn" class="btn btn-soft">Keluar</button><button id="menuBtn" class="menu-btn" aria-label="Buka menu" aria-expanded="false">☰</button></div>
-    </header>
-    <div id="menuOverlay" class="menu-overlay"></div>
-    <div class="layout">
-      <aside id="sidebar" class="sidebar"><nav class="nav">
-        <button data-page="scan"><span class="nav-icon">▣</span><span>Scan</span></button>
-        <button data-page="shipments"><span class="nav-icon">▤</span><span>Hari Ini</span></button>
-        <button data-page="master" class="admin-only"><span class="nav-icon">▦</span><span>Master Data</span></button>
-        <button data-page="log" class="admin-only"><span class="nav-icon">◷</span><span>Log Scan</span></button>
-        <button data-page="users" class="admin-only"><span class="nav-icon">♙</span><span>Petugas</span></button>
-      </nav></aside>
-      <main class="content">
-        <div id="page-scan">
-          <div class="page-head"><h2>Scan Barang</h2><p>Gunakan kamera HP atau scanner Bluetooth/USB.</p></div>
-          <div class="cards">
-            <div class="stat"><small>Total SKU</small><b id="statSku">0</b></div><div class="stat"><small>Total Qty</small><b id="statQty">0</b></div><div class="stat"><small>Total Scan</small><b id="statScan">0</b></div><div class="stat"><small>Petugas</small><b id="statOps">0</b></div>
-          </div>
-          <div class="scan-grid">
-            <section class="panel scanner-panel">
-              <div class="scanner-status"><span class="dot"></span> Scanner Ready</div>
-              <div class="scan-actions"><button id="cameraBtn" class="btn btn-primary">📷 Kamera</button><button id="manualFocusBtn" class="btn btn-soft">⌨ Scanner</button></div>
-              <input id="scanInput" class="scan-input input" inputmode="numeric" autocomplete="off" placeholder="Scan UPC di sini..." aria-label="UPC">
-              <div class="hint">Scanner Bluetooth/USB diperlakukan sebagai keyboard. Barcode + Enter akan langsung diproses.</div>
-              <div id="lastResult" class="last"><div class="last-title">HASIL SCAN TERAKHIR</div><div class="last-name">Belum ada scan</div><div class="last-meta">Scan barcode pertama untuk mulai.</div></div>
-            </section>
-            <section class="panel"><div class="section-title">Pengiriman Hari Ini</div><div id="miniRows" class="table-wrap"></div></section>
-          </div>
-        </div>
-        <div id="page-shipments" class="hidden"><div class="page-head"><h2>Pengiriman Hari Ini</h2><p>Rekap UPC yang sudah discan hari ini.</p></div><section class="panel"><div id="shipmentRows" class="table-wrap"></div></section></div>
-        <div id="page-master" class="hidden"><div class="page-head"><h2>Master Data</h2><p>Data referensi UPC, SKU, dan nama barang.</p></div><section class="panel"><div class="toolbar"><input id="masterSearch" class="input" placeholder="Cari UPC, SKU, nama..."><button id="addMasterBtn" class="btn btn-primary">+ Tambah</button></div><div id="masterRows" class="table-wrap"></div></section></div>
-        <div id="page-log" class="hidden"><div class="page-head"><h2>Log Scan</h2><p>Histori aktivitas scanning.</p></div><section class="panel"><div class="toolbar"><input id="logSearch" class="input" placeholder="Cari UPC, SKU, nama..."><select id="logPetugas" class="input"><option value="">Semua petugas</option></select></div><div id="logRows" class="table-wrap"></div></section></div>
-        <div id="page-users" class="hidden"><div class="page-head"><h2>Petugas</h2><p>Kelola akun yang dapat melakukan scanning.</p></div><section class="panel"><div class="toolbar"><button id="addUserBtn" class="btn btn-primary">+ Tambah Petugas</button></div><div id="userRows" class="table-wrap"></div></section></div>
-      </main>
-    </div>
-  </section>
+        <section id="appView" class="app hidden">
+            <header class="topbar">
+                <div class="top-left">
+                    <div class="logo">
+                        <img src="assets/Images/logo/Logo.png" alt="logo cv intan mutiara sanny" />
+                    </div>
+                    <div>
+                        <div class="top-title">UPC Scanner</div>
+                        <div class="top-sub">CV Intan Mutiara Sanny</div>
+                    </div>
+                </div>
+                <div class="user-area">
+                    <div id="userPill" class="user-pill"></div>
+                    <button id="logoutBtn" class="btn btn-soft">Keluar</button><button id="menuBtn" class="menu-btn" aria-label="Buka menu" aria-expanded="false">☰</button>
+                </div>
+            </header>
+            <div id="menuOverlay" class="menu-overlay"></div>
+            <div class="layout">
+                <aside id="sidebar" class="sidebar">
+                    <nav class="nav">
+                        <button data-page="scan"><span class="nav-icon">▣</span><span>Scan</span></button>
+                        <button data-page="shipments"><span class="nav-icon">▤</span><span>Hari Ini</span></button>
+                        <button data-page="master" class="admin-only"><span class="nav-icon">▦</span><span>Master Data</span></button>
+                        <button data-page="log" class="admin-only"><span class="nav-icon">◷</span><span>Log Scan</span></button>
+                        <button data-page="users" class="admin-only"><span class="nav-icon">♙</span><span>Petugas</span></button>
+                    </nav>
+                </aside>
+                <main class="content">
+                    <div id="page-scan">
+                        <div class="page-head">
+                            <h2>Scan Barang</h2>
+                            <p>Gunakan kamera HP atau scanner Bluetooth/USB.</p>
+                        </div>
+                        <div class="cards">
+                            <div class="stat"><small>Total SKU</small><b id="statSku">0</b></div>
+                            <div class="stat"><small>Total Qty</small><b id="statQty">0</b></div>
+                            <div class="stat"><small>Total Scan</small><b id="statScan">0</b></div>
+                            <div class="stat"><small>Petugas</small><b id="statOps">0</b></div>
+                        </div>
+                        <div class="scan-grid">
+                            <section class="panel scanner-panel">
+                                <div class="scanner-status"><span class="dot"></span> Scanner Ready</div>
+                                <div class="scan-actions"><button id="cameraBtn" class="btn btn-primary">📷 Kamera</button><button id="manualFocusBtn" class="btn btn-soft">⌨ Scanner</button></div>
+                                <input id="scanInput" class="scan-input input" inputmode="numeric" autocomplete="off" placeholder="Scan UPC di sini..." aria-label="UPC" />
+                                <div class="hint">Scanner Bluetooth/USB diperlakukan sebagai keyboard. Barcode + Enter akan langsung diproses.</div>
+                                <div id="lastResult" class="last">
+                                    <div class="last-title">HASIL SCAN TERAKHIR</div>
+                                    <div class="last-name">Belum ada scan</div>
+                                    <div class="last-meta">Scan barcode pertama untuk mulai.</div>
+                                </div>
+                            </section>
+                            <section class="panel">
+                                <div class="section-title">Pengiriman Hari Ini</div>
+                                <div id="miniRows" class="table-wrap"></div>
+                            </section>
+                        </div>
+                    </div>
+                    <div id="page-shipments" class="hidden">
+                        <div class="page-head">
+                            <h2>Pengiriman Hari Ini</h2>
+                            <p>Rekap UPC yang sudah discan hari ini.</p>
+                        </div>
+                        <section class="panel"><div id="shipmentRows" class="table-wrap"></div></section>
+                    </div>
+                    <div id="page-master" class="hidden">
+                        <div class="page-head">
+                            <h2>Master Data</h2>
+                            <p>Data referensi UPC, SKU, dan nama barang.</p>
+                        </div>
+                        <section class="panel">
+                            <div class="toolbar"><input id="masterSearch" class="input" placeholder="Cari UPC, SKU, nama..." /><button id="addMasterBtn" class="btn btn-primary">+ Tambah</button></div>
+                            <div id="masterRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+                    <div id="page-log" class="hidden">
+                        <div class="page-head">
+                            <h2>Log Scan</h2>
+                            <p>Histori aktivitas scanning.</p>
+                        </div>
+                        <section class="panel">
+                            <div class="toolbar">
+                                <input id="logSearch" class="input" placeholder="Cari UPC, SKU, nama..." /><select id="logPetugas" class="input">
+                                    <option value="">Semua petugas</option>
+                                </select>
+                            </div>
+                            <div id="logRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+                    <div id="page-users" class="hidden">
+                        <div class="page-head">
+                            <h2>Petugas</h2>
+                            <p>Kelola akun yang dapat melakukan scanning.</p>
+                        </div>
+                        <section class="panel">
+                            <div class="toolbar"><button id="addUserBtn" class="btn btn-primary">+ Tambah Petugas</button></div>
+                            <div id="userRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+        </section>
 
-  <div id="modal" class="modal hidden"><div id="modalContent" class="modal-card"></div></div>
-  <div id="toast" class="toast hidden"></div><div id="loader" class="loader hidden"><div class="spinner"></div></div>
+        <div id="modal" class="modal hidden"><div id="modalContent" class="modal-card"></div></div>
+        <div id="toast" class="toast hidden"></div>
+        <div id="loader" class="loader hidden"><div class="spinner"></div></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-  <script type="module" src="js/app.js"></script>
-</body>
+        <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+        <script type="module" src="js/app.js"></script>
+    </body>
 </html>
