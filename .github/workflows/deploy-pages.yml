@@ -35,6 +35,7 @@ jobs:
           cp upc-scanner/index.html _site/scanner/
           cp -R upc-scanner/css _site/scanner/
           cp -R upc-scanner/js _site/scanner/
+          cp -R upc-scanner/assets _site/scanner/
 
       - name: Upload frontend
         uses: actions/upload-pages-artifact@v4
