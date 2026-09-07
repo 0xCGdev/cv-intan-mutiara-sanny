@@ -27,10 +27,13 @@ export function focusScan() {
     }, 80);
 }
 
-/* =========================
-   SCAN UTAMA
-========================= */
-
+/*
+ * Setelah UPC terbaca:
+ * 1. Lookup ke MASTER_DATA
+ * 2. Jika ditemukan, tampilkan modal detail + QTY
+ * 3. User klik Simpan
+ * 4. Baru kirim scanUPC(upc, qty) ke backend
+ */
 export async function doScan(upc) {
     const value = String(upc || "").trim();
 
@@ -47,7 +50,7 @@ export async function doScan(upc) {
     busy(true);
 
     try {
-        const r = await api("scanUPC", {
+        const r = await api("lookupUPC", {
             upc: value,
         });
 
@@ -56,29 +59,202 @@ export async function doScan(upc) {
                 window.dispatchEvent(new Event("scanner:stop"));
             }
 
-            showLastError(r.message || "Scan gagal");
-
-            toast(r.message || "Scan gagal", true);
-
+            showLastError(r.message || "UPC tidak ditemukan");
+            toast(r.message || "UPC tidak ditemukan", true);
             return;
+        }
+
+        showQtyModal(r.item);
+    } catch (e) {
+        console.error("Lookup UPC error:", e);
+
+        toast(e?.message || "Tidak dapat terhubung ke server.", true);
+    } finally {
+        busy(false);
+        focusScan();
+    }
+}
+
+/* =========================
+   MODAL QTY
+========================= */
+
+function showQtyModal(item) {
+    const modal = $("modal");
+    const content = $("modalContent");
+
+    if (!modal || !content) {
+        toast("Modal tidak ditemukan.", true);
+        return;
+    }
+
+    const upc = String(item?.upc || "").trim();
+    const sku = String(item?.sku || "-").trim();
+    const name = String(item?.name || "-").trim();
+
+    content.innerHTML = `
+        <div class="modal-head">
+            <h3>Konfirmasi Barang</h3>
+
+            <button
+                class="close"
+                data-action="close-modal"
+                aria-label="Tutup"
+                type="button"
+            >×</button>
+        </div>
+
+        <div class="scan-confirm">
+            <div class="scan-confirm-row">
+                <span>UPC</span>
+                <strong>${escapeHtml(upc)}</strong>
+            </div>
+
+            <div class="scan-confirm-row">
+                <span>SKU</span>
+                <strong>${escapeHtml(sku)}</strong>
+            </div>
+
+            <div class="scan-confirm-row">
+                <span>Nama Barang</span>
+                <strong>${escapeHtml(name)}</strong>
+            </div>
+
+            <div class="scan-confirm-qty">
+                <label for="scanQty">QTY</label>
+
+                <input
+                    id="scanQty"
+                    class="input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="Masukkan jumlah"
+                >
+            </div>
+
+            <div class="scan-confirm-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-action="close-modal"
+                >
+                    Batal
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="saveScanQtyBtn"
+                >
+                    Simpan
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove("hidden");
+
+    const qtyInput = $("scanQty");
+    const saveButton = $("saveScanQtyBtn");
+
+    if (qtyInput) {
+        qtyInput.focus();
+
+        qtyInput.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+
+            e.preventDefault();
+
+            if (saveButton) {
+                saveButton.click();
+            }
+        });
+    }
+
+    if (saveButton) {
+        saveButton.addEventListener("click", async () => {
+            const qty = Number(qtyInput?.value);
+
+            if (!Number.isInteger(qty) || qty <= 0) {
+                toast("QTY harus diisi dengan angka lebih dari 0.", true);
+
+                if (qtyInput) {
+                    qtyInput.focus();
+                    qtyInput.select();
+                }
+
+                return;
+            }
+
+            await saveScan(valueOrItemUpc(item, upc), qty);
+        });
+    }
+}
+
+function valueOrItemUpc(item, fallback) {
+    return String(item?.upc || fallback || "").trim();
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/* =========================
+   SIMPAN SCAN
+========================= */
+
+async function saveScan(upc, qty) {
+    const modal = $("modal");
+
+    busy(true);
+
+    try {
+        const r = await api("scanUPC", {
+            upc,
+            qty,
+        });
+
+        if (!r.success) {
+            if (r.code === "SESSION_EXPIRED") {
+                window.dispatchEvent(new Event("scanner:stop"));
+            }
+
+            showLastError(r.message || "Gagal menyimpan scan");
+            toast(r.message || "Gagal menyimpan scan", true);
+            return;
+        }
+
+        if (modal) {
+            modal.classList.add("hidden");
+        }
+
+        const content = $("modalContent");
+
+        if (content) {
+            content.innerHTML = "";
         }
 
         state.todayRows = r.rows || [];
 
         updateStats(r.summary || {});
-
         showLast(r.item);
-
         renderToday();
 
-        toast(`✓ ${r.item?.name || "Barang"} · Qty ${r.item?.qty ?? 1}`);
+        toast(`✓ ${r.item?.name || "Barang"} · Qty ${r.item?.qty ?? qty}`);
     } catch (e) {
-        console.error("Scan error:", e);
+        console.error("Save scan error:", e);
 
-        toast(e.message || "Tidak dapat terhubung ke server.", true);
+        toast(e?.message || "Tidak dapat menyimpan scan.", true);
     } finally {
         busy(false);
-
         focusScan();
     }
 }

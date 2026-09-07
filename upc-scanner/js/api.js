@@ -1,6 +1,6 @@
 import { state, setToken } from "./state.js";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbx5CTEKU0ewdtYPhbFHxNJSM5T-anCpcsb_o4WSG3uz8xsP5zK0VbLNG72OKQbs6W49/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxOfDBN9Dqkk3WbK2ChSmdCKpQcSfqvqhDsluMYesfMZoFhOr-vcoLDxISHQGZ_kH45SA/exec";
 
 export async function api(action, data = {}, useToken = true) {
     const payload = {

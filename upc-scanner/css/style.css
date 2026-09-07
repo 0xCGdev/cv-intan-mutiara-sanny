@@ -858,56 +858,99 @@ body.menu-open .menu-overlay {
 }
 
 /* =========================================================
-    17. CAMERA MODAL
+    17. MODAL - MOBILE FIRST
    ========================================================= */
 
 .modal {
     position: fixed;
     inset: 0;
 
-    z-index: 50;
+    z-index: 900;
 
-    display: grid;
-    place-items: end center;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
 
-    padding: 8px;
+    padding: 0;
 
-    background: rgba(4, 24, 14, 0.48);
+    background: rgba(3, 18, 11, 0.68);
+
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    animation: modal-fade-in 0.18s ease-out;
 }
 
 .modal-card {
+    position: relative;
+
     width: 100%;
     max-width: 520px;
 
-    max-height: 94dvh;
+    max-height: min(92dvh, 720px);
 
     overflow-x: hidden;
     overflow-y: auto;
 
-    padding: 14px;
+    padding: 24px 16px calc(18px + env(safe-area-inset-bottom));
 
     background: #fff;
 
-    border-radius: 20px 20px 12px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 24px 24px 0 0;
 
-    box-shadow: var(--shadow);
+    box-shadow:
+        0 -10px 40px rgba(4, 24, 14, 0.22),
+        0 -2px 10px rgba(4, 24, 14, 0.08);
+
+    animation: modal-slide-up 0.22s ease-out;
 }
+
+/* Garis kecil seperti bottom sheet HP */
+.modal-card::before {
+    content: "";
+
+    position: absolute;
+
+    top: 8px;
+    left: 50%;
+
+    width: 38px;
+    height: 4px;
+
+    transform: translateX(-50%);
+
+    border-radius: 999px;
+
+    background: #dce6e1;
+}
+
+/* =========================================================
+    MODAL HEADER
+   ========================================================= */
 
 .modal-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    gap: 10px;
+    gap: 12px;
 
-    margin-bottom: 5px;
+    margin: 4px 0 18px;
 }
 
 .modal-head h3 {
+    min-width: 0;
+
     margin: 0;
 
-    font-size: 17px;
-    line-height: 1.2;
+    color: var(--text);
+
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 850;
+
+    letter-spacing: -0.2px;
 }
 
 .close {
@@ -918,13 +961,191 @@ body.menu-open .menu-overlay {
     display: grid;
     place-items: center;
 
+    padding: 0;
+
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
 
     background: var(--green-50);
+    color: var(--green-900);
+
+    font-size: 23px;
+    line-height: 1;
+
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+.close:active {
+    transform: scale(0.94);
+    background: var(--green-100);
+}
+
+/* =========================================================
+    KONFIRMASI BARANG
+   ========================================================= */
+
+.scan-confirm {
+    width: 100%;
+}
+
+.scan-confirm-row {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+
+    gap: 12px;
+
+    padding: 11px 0;
+
+    border-bottom: 1px solid #edf2ef;
+}
+
+.scan-confirm-row:first-child {
+    padding-top: 0;
+}
+
+.scan-confirm-row span {
     color: var(--muted);
 
-    font-size: 24px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.scan-confirm-row strong {
+    min-width: 0;
+
+    color: var(--text);
+
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 800;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* =========================================================
+    QTY
+   ========================================================= */
+
+.scan-confirm-qty {
+    margin-top: 16px;
+
+    padding: 15px;
+
+    border: 1px solid #d8eee2;
+    border-radius: 16px;
+
+    background: var(--green-50);
+}
+
+.scan-confirm-qty label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: var(--green-900);
+
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.scan-confirm-qty .input {
+    min-height: 54px;
+
+    border: 2px solid #cfe8da;
+    border-radius: 13px;
+
+    background: #fff;
+
+    font-size: 18px;
+    font-weight: 750;
+}
+
+.scan-confirm-qty .input:focus {
+    border-color: var(--green-600);
+
+    box-shadow: 0 0 0 4px rgba(35, 147, 93, 0.1);
+}
+
+/* =========================================================
+    MODAL ACTIONS
+   ========================================================= */
+
+.scan-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+
+    gap: 8px;
+
+    margin-top: 14px;
+}
+
+.scan-confirm-actions .btn {
+    width: 100%;
+
+    min-height: 52px;
+
+    border-radius: 14px;
+
+    font-size: 14px;
+    font-weight: 850;
+}
+
+/* =========================================================
+    MODAL ANIMATION
+   ========================================================= */
+
+@keyframes modal-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modal-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes modal-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* =========================================================
+    MODAL OPEN STATE
+   ========================================================= */
+
+/*
+ * Modal berada di luar .app, sehingga overlay menutup:
+ * - topbar
+ * - sidebar
+ * - content
+ * - menu drawer
+ *
+ * Tidak perlu mengubah HTML atau JavaScript.
+ */
+.modal:not(.hidden) {
+    visibility: visible;
 }
 
 /* =========================================================
@@ -1111,7 +1332,7 @@ body.menu-open .menu-overlay {
     right: 10px;
     bottom: 12px;
 
-    z-index: 70;
+    z-index: 950;
 
     padding: 11px 12px;
 
@@ -1140,7 +1361,7 @@ body.menu-open .menu-overlay {
     position: fixed;
     inset: 0;
 
-    z-index: 100;
+    z-index: 1000;
 
     display: grid;
     place-items: center;
@@ -1166,6 +1387,30 @@ body.menu-open .menu-overlay {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* =========================================================
+    MOBILE COMFORT
+   ========================================================= */
+
+@media (min-width: 480px) and (max-width: 699px) {
+    .content {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .panel {
+        padding: 16px;
+    }
+
+    .modal-card {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .scan-confirm-row {
+        grid-template-columns: 84px minmax(0, 1fr);
     }
 }
 
@@ -1380,13 +1625,26 @@ body.menu-open .menu-overlay {
     }
 
     .modal {
-        place-items: center;
+        align-items: center;
+        justify-content: center;
 
-        padding: 15px;
+        padding: 20px;
     }
 
     .modal-card {
         border-radius: 22px;
+
+        padding: 22px;
+
+        box-shadow:
+            0 24px 70px rgba(4, 24, 14, 0.25),
+            0 5px 20px rgba(4, 24, 14, 0.08);
+
+        animation: modal-scale-in 0.18s ease-out;
+    }
+
+    .modal-card::before {
+        display: none;
     }
 
     .toast {
