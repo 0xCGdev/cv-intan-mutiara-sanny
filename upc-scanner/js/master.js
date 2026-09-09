@@ -67,10 +67,24 @@ export function openMaster() {
         </div>
 
         <label>UPC</label>
-            <input id="mUpc" class="input" inputmode="numeric">
+            <input
+                id="mUpc"
+                class="input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
+            >
 
         <label>SKU</label>
-            <input id="mSku" class="input">
+                <input
+                id="mSku"
+                class="input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
+            >
 
         <label>Nama Barang</label>
             <input id="mName" class="input">
@@ -137,6 +151,14 @@ export async function deleteMaster(upc) {
         reverseButtons: true,
 
         allowOutsideClick: false,
+
+        heightAuto: false,
+
+        customClass: {
+            popup: "delete-confirm-popup",
+            confirmButton: "delete-confirm-btn",
+            cancelButton: "delete-cancel-btn",
+        },
     });
 
     if (!result.isConfirmed) {
