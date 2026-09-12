@@ -16,8 +16,11 @@ import { bindPacking, loadPacking } from "./packing.js";
 
 import { bindLoading, loadLoading } from "./loading.js";
 
+import { bindShipment, loadShipment } from "./shipment.js";
+
 function closeMenu() {
     document.body.classList.remove("menu-open");
+
     $("menuBtn")?.setAttribute("aria-expanded", "false");
 }
 
@@ -26,6 +29,7 @@ function showPage(page) {
 
     pages.forEach((p) => {
         const el = $("page-" + p);
+
         if (el) {
             el.classList.toggle("hidden", p !== page);
         }
@@ -34,10 +38,6 @@ function showPage(page) {
     document.querySelectorAll(".nav button").forEach((b) => {
         b.classList.toggle("active", b.dataset.page === page);
     });
-
-    // =========================
-    // LOAD HALAMAN
-    // =========================
 
     if (page === "scan") {
         window.setTimeout(() => {
@@ -54,7 +54,7 @@ function showPage(page) {
     }
 
     if (page === "shipments") {
-        refreshToday();
+        loadShipment();
     }
 
     if (page === "master" && state.me?.role === "ADMIN") {
@@ -73,10 +73,6 @@ function showPage(page) {
 }
 
 function bindEvents() {
-    // =========================
-    // LOGIN
-    // =========================
-
     $("loginBtn")?.addEventListener("click", login);
 
     $("loginPass")?.addEventListener("keydown", (e) => {
@@ -85,27 +81,15 @@ function bindEvents() {
         }
     });
 
-    // =========================
-    // LOGOUT
-    // =========================
-
     $("logoutBtn")?.addEventListener("click", () => {
         logout();
     });
-
-    // =========================
-    // NAVIGATION
-    // =========================
 
     document.querySelectorAll(".nav button").forEach((btn) => {
         btn.addEventListener("click", () => {
             showPage(btn.dataset.page);
         });
     });
-
-    // =========================
-    // MOBILE MENU
-    // =========================
 
     $("menuBtn")?.addEventListener("click", () => {
         const open = document.body.classList.toggle("menu-open");
@@ -121,10 +105,6 @@ function bindEvents() {
         }
     });
 
-    // =========================
-    // MASTER DATA
-    // =========================
-
     $("masterSearch")?.addEventListener("input", renderMaster);
 
     $("addMasterBtn")?.addEventListener("click", openMaster);
@@ -137,23 +117,11 @@ function bindEvents() {
         }
     });
 
-    // =========================
-    // PETUGAS
-    // =========================
-
     $("addUserBtn")?.addEventListener("click", openUser);
-
-    // =========================
-    // LOG
-    // =========================
 
     $("logSearch")?.addEventListener("input", () => loadLog());
 
     $("logPetugas")?.addEventListener("change", () => loadLog());
-
-    // =========================
-    // MODAL
-    // =========================
 
     $("modal")?.addEventListener("click", (e) => {
         if (e.target.id === "modal" || e.target.closest('[data-action="close-modal"]')) {
@@ -162,19 +130,11 @@ function bindEvents() {
     });
 }
 
-// =========================
-// APP READY
-// =========================
-
 window.addEventListener("app:ready", (e) => {
     applyData(e.detail);
 
     showPage("scan");
 });
-
-// =========================
-// INITIALIZE
-// =========================
 
 bindEvents();
 
@@ -185,6 +145,8 @@ bindScanner();
 bindPacking();
 
 bindLoading();
+
+bindShipment();
 
 showLogin();
 

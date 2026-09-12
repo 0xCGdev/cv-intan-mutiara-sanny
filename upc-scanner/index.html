@@ -16,6 +16,7 @@
                     <div class="logo">
                         <img src="assets/Images/logo/logo.png" alt="logo cv intan mutiara sanny" />
                     </div>
+
                     <div>
                         <h1>UPC Scanner</h1>
                         <p>CV Intan Mutiara Sanny</p>
@@ -47,10 +48,15 @@
                     </div>
                 </div>
 
-                <div class="user-area">
-                    <div id="userPill" class="user-pill"></div>
+                <div class="top-actions">
+                    <button id="notificationBtn" class="notification-btn" type="button" aria-label="Notifikasi">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M10 21h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
 
-                    <button id="logoutBtn" class="btn btn-soft" type="button">Keluar</button>
+                        <span id="notificationBadge" class="notification-badge hidden">0</span>
+                    </button>
 
                     <button id="menuBtn" class="menu-btn" type="button" aria-label="Buka menu" aria-expanded="false">☰</button>
                 </div>
@@ -60,84 +66,118 @@
 
             <div class="layout">
                 <aside id="sidebar" class="sidebar">
-                    <nav class="nav">
-                        <button data-page="scan">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                </svg>
-                            </span>
-                            <span>Dashboard</span>
-                        </button>
+                    <div class="sidebar-content">
+                        <nav class="nav">
+                            <button data-page="scan">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    </svg>
+                                </span>
 
-                        <button data-page="packing">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M21 8.5 12 4 3 8.5v7L12 20l9-4.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                                    <path d="M3 8.5 12 13l9-4.5M12 13v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                                    <path d="M8 6l9 4.5" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                </svg>
-                            </span>
-                            <span>Packing</span>
-                        </button>
+                                <span>Dashboard</span>
+                            </button>
 
-                        <button data-page="loading">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M3 7h11v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                                    <path d="M14 10h4l3 3v4h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                                    <circle cx="7" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                </svg>
-                            </span>
-                            <span>Loading</span>
-                        </button>
+                            <button data-page="shipments">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 6h18v12H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M7 6V4h10v2M7 10h10M7 14h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
 
-                        <button data-page="matching">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 1 2 2h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                                    <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <path d="m15 15 3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </span>
-                            <span>Matching</span>
-                        </button>
+                                <span>Shipment</span>
+                            </button>
 
-                        <button data-page="master" class="admin-only">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                                    <path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </span>
-                            <span>Master Data</span>
-                        </button>
+                            <button data-page="packing">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 8.5 12 4 3 8.5v7L12 20l9-4.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M3 8.5 12 13l9-4.5M12 13v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M8 6l9 4.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    </svg>
+                                </span>
 
-                        <button data-page="log" class="admin-only">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </span>
-                            <span>Log Scan</span>
-                        </button>
+                                <span>Packing</span>
+                            </button>
 
-                        <button data-page="users" class="admin-only">
-                            <span class="nav-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8" />
-                                    <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                                    <path d="M17 11a3 3 0 1 0 0-6M18 14c1.7.7 3 2.3 3 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </span>
-                            <span>Petugas</span>
+                            <button data-page="loading">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 7h11v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M14 10h4l3 3v4h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <circle cx="7" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    </svg>
+                                </span>
+
+                                <span>Loading</span>
+                            </button>
+
+                            <button data-page="matching">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="m15 15 3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Matching</span>
+                            </button>
+
+                            <button data-page="master" class="admin-only">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Master Data</span>
+                            </button>
+
+                            <button data-page="log" class="admin-only">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Log Scan</span>
+                            </button>
+
+                            <button data-page="users" class="admin-only">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="M17 11a3 3 0 1 0 0-6M18 14c1.7.7 3 2.3 3 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Petugas</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div class="sidebar-user">
+                        <div class="sidebar-user-info">
+                            <div id="sidebarUserName"></div>
+                            <span id="sidebarUserRole"></span>
+                        </div>
+
+                        <button id="logoutBtn" class="sidebar-logout" type="button" aria-label="Keluar" title="Keluar">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M10 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M14 8l4 4-4 4M10 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
                         </button>
-                    </nav>
+                    </div>
                 </aside>
 
                 <main class="content">
@@ -146,6 +186,36 @@
                             <h2>Dashboard</h2>
                             <p>Selamat datang di UPC Scanner.</p>
                         </div>
+                    </div>
+
+                    <div id="page-shipments" class="hidden">
+                        <div class="page-head">
+                            <div>
+                                <h2>Shipment</h2>
+                                <p>Kelola shipment dan target pengiriman.</p>
+                            </div>
+                        </div>
+
+                        <section class="panel">
+                            <div class="toolbar">
+                                <input id="shipmentSearch" class="input" placeholder="Cari No. Shipment..." />
+
+                                <div class="shipment-toolbar-actions">
+                                    <button id="addShipmentBtn" class="btn btn-primary" type="button">+ Tambah Shipment</button>
+
+                                    <button id="archiveShipmentBtn" class="btn btn-soft shipment-archive-btn" type="button" title="Arsip">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M4 4h16v4H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                            <path d="M5 8v11h14V8M9 12h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+
+                                        <span>Arsip</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="shipmentRows" class="shipment-list"></div>
+                        </section>
                     </div>
 
                     <div id="page-packing" class="hidden">
