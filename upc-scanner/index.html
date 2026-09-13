@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="id">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#155c3b" />
+        <title>CV IMS - UPC Scanner</title>
+        <link rel="stylesheet" href="css/style.css" />
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    </head>
+
+    <body>
+        <section id="loginView" class="login">
+            <div class="login-card">
+                <div class="brand">
+                    <div class="logo">
+                        <img src="assets/Images/logo/logo.png" alt="logo cv intan mutiara sanny" />
+                    </div>
+
+                    <div>
+                        <h1>UPC Scanner</h1>
+                        <p>CV Intan Mutiara Sanny</p>
+                    </div>
+                </div>
+
+                <label for="loginUser">Username</label>
+                <input id="loginUser" class="input" autocomplete="username" placeholder="Masukkan username" />
+
+                <label for="loginPass">Password</label>
+                <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="Masukkan password" />
+
+                <button id="loginBtn" class="btn btn-primary full" type="button">Masuk</button>
+
+                <div id="loginError" class="error-box hidden"></div>
+            </div>
+        </section>
+
+        <section id="appView" class="app hidden">
+            <header class="topbar">
+                <div class="top-left">
+                    <div class="logo">
+                        <img src="assets/Images/logo/logo.png" alt="logo cv intan mutiara sanny" />
+                    </div>
+
+                    <div>
+                        <div class="top-title">UPC Scanner</div>
+                        <div class="top-sub">CV Intan Mutiara Sanny</div>
+                    </div>
+                </div>
+
+                <div class="top-actions">
+                    <button id="notificationBtn" class="notification-btn" type="button" aria-label="Notifikasi">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M10 21h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+
+                        <span id="notificationBadge" class="notification-badge hidden">0</span>
+                    </button>
+
+                    <button id="menuBtn" class="menu-btn" type="button" aria-label="Buka menu" aria-expanded="false">☰</button>
+                </div>
+            </header>
+
+            <div id="menuOverlay" class="menu-overlay"></div>
+
+            <div class="layout">
+                <aside id="sidebar" class="sidebar">
+                    <div class="sidebar-content">
+                        <nav class="nav">
+                            <button data-page="scan">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    </svg>
+                                </span>
+
+                                <span>Dashboard</span>
+                            </button>
+
+                            <button data-page="shipments">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 6h18v12H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M7 6V4h10v2M7 10h10M7 14h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Shipment</span>
+                            </button>
+
+                            <button data-page="packing">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M21 8.5 12 4 3 8.5v7L12 20l9-4.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M3 8.5 12 13l9-4.5M12 13v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M8 6l9 4.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    </svg>
+                                </span>
+
+                                <span>Packing</span>
+                            </button>
+
+                            <button data-page="loading">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 7h11v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M14 10h4l3 3v4h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <circle cx="7" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    </svg>
+                                </span>
+
+                                <span>Loading</span>
+                            </button>
+
+                            <button data-page="matching">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="m15 15 3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Matching</span>
+                            </button>
+
+                            <button data-page="master" class="admin-only">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Master Data</span>
+                            </button>
+
+                            <button data-page="log" class="admin-only">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Log Scan</span>
+                            </button>
+
+                            <button data-page="users" class="admin-only">
+                                <span class="nav-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="M17 11a3 3 0 1 0 0-6M18 14c1.7.7 3 2.3 3 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+
+                                <span>Petugas</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div class="sidebar-user">
+                        <div class="sidebar-user-info">
+                            <div id="sidebarUserName"></div>
+                            <span id="sidebarUserRole"></span>
+                        </div>
+
+                        <button id="logoutBtn" class="sidebar-logout" type="button" aria-label="Keluar" title="Keluar">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M10 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M14 8l4 4-4 4M10 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
+                </aside>
+
+                <main class="content">
+                    <div id="page-scan">
+                        <div class="page-head">
+                            <h2>Dashboard</h2>
+                            <p>Selamat datang di UPC Scanner.</p>
+                        </div>
+                    </div>
+
+                    <div id="page-shipments" class="hidden">
+                        <div class="page-head">
+                            <div>
+                                <h2>Shipment</h2>
+                                <p>Kelola shipment dan target pengiriman.</p>
+                            </div>
+                        </div>
+
+                        <section class="panel">
+                            <div class="toolbar">
+                                <input id="shipmentSearch" class="input" placeholder="Cari No. Shipment..." />
+
+                                <div class="shipment-toolbar-actions">
+                                    <button id="addShipmentBtn" class="btn btn-primary" type="button">+ Tambah Shipment</button>
+
+                                    <button id="archiveShipmentBtn" class="btn btn-soft shipment-archive-btn" type="button" title="Arsip">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M4 4h16v4H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                            <path d="M5 8v11h14V8M9 12h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+
+                                        <span>Arsip</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="shipmentRows" class="shipment-list"></div>
+                        </section>
+                    </div>
+
+                    <div id="page-packing" class="hidden">
+                        <div class="page-head">
+                            <h2>Packing</h2>
+                            <p>Scan barang berdasarkan shipment yang dipilih.</p>
+                        </div>
+
+                        <div class="packing-top-grid">
+                            <section class="panel packing-shipment-card">
+                                <div class="section-title">Pilih Shipment</div>
+
+                                <div id="packingShipmentSelector" class="packing-shipment-selector"></div>
+
+                                <div id="packingShipmentInfo" class="packing-shipment-info">
+                                    <span>Status</span>
+                                    <strong>Belum dipilih</strong>
+                                </div>
+                            </section>
+
+                            <section id="packingScannerPanel" class="panel scanner-panel">
+                                <div class="scanner-status">
+                                    <span class="dot"></span>
+                                    Scanner Ready
+                                </div>
+
+                                <div class="scan-actions">
+                                    <button id="packingCameraBtn" class="btn btn-primary" type="button">📷 Kamera</button>
+
+                                    <button id="packingManualFocusBtn" class="btn btn-soft" type="button">⌨ Scanner</button>
+                                </div>
+
+                                <input id="packingScanInput" class="scan-input input" inputmode="numeric" autocomplete="off" placeholder="Pilih Shipment terlebih dahulu..." aria-label="UPC Packing" disabled />
+
+                                <div class="hint">Scanner Bluetooth/USB diperlakukan sebagai keyboard. Barcode + Enter akan langsung diproses.</div>
+                            </section>
+
+                            <section class="panel packing-history-card">
+                                <div class="section-title">Riwayat Scan</div>
+
+                                <div id="packingHistoryRows" class="table-wrap"></div>
+                            </section>
+                        </div>
+
+                        <section class="panel packing-result-card">
+                            <div class="packing-result-header">
+                                <div>
+                                    <div class="section-title">Hasil Scan Shipment</div>
+
+                                    <p id="packingResultShipment">Pilih Shipment untuk melihat detail.</p>
+                                </div>
+
+                                <button id="finishPackingBtn" class="btn btn-primary" type="button" disabled>Selesaikan Packing</button>
+                            </div>
+
+                            <div id="packingShipmentResult" class="table-wrap"></div>
+
+                            <div id="packingLastResult" class="last hidden"></div>
+                        </section>
+                    </div>
+
+                    <div id="page-loading" class="hidden">
+                        <div class="page-head">
+                            <h2>Loading</h2>
+                            <p>Scan barang aktual berdasarkan shipment yang sudah dipacking.</p>
+                        </div>
+
+                        <section class="panel">
+                            <div id="loadingRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+
+                    <div id="page-matching" class="hidden">
+                        <div class="page-head">
+                            <h2>Matching</h2>
+                            <p>Bandingkan hasil Packing dengan Loading.</p>
+                        </div>
+
+                        <section class="panel">
+                            <div id="matchingRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+
+                    <div id="page-master" class="hidden">
+                        <div class="page-head">
+                            <h2>Master Data</h2>
+                            <p>Data referensi UPC, SKU, dan nama barang.</p>
+                        </div>
+
+                        <section class="panel">
+                            <div class="toolbar">
+                                <input id="masterSearch" class="input" placeholder="Cari UPC, SKU, nama..." />
+
+                                <button id="addMasterBtn" class="btn btn-primary" type="button">+ Tambah</button>
+                            </div>
+
+                            <div id="masterRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+
+                    <div id="page-log" class="hidden">
+                        <div class="page-head">
+                            <h2>Log Scan</h2>
+                            <p>Histori aktivitas scanning.</p>
+                        </div>
+
+                        <section class="panel">
+                            <div class="toolbar">
+                                <input id="logSearch" class="input" placeholder="Cari UPC, SKU, nama..." />
+
+                                <select id="logPetugas" class="input">
+                                    <option value="">Semua petugas</option>
+                                </select>
+                            </div>
+
+                            <div id="logRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+
+                    <div id="page-users" class="hidden">
+                        <div class="page-head">
+                            <h2>Petugas</h2>
+                            <p>Kelola akun yang dapat melakukan scanning.</p>
+                        </div>
+
+                        <section class="panel">
+                            <div class="toolbar">
+                                <button id="addUserBtn" class="btn btn-primary" type="button">+ Tambah Petugas</button>
+                            </div>
+
+                            <div id="userRows" class="table-wrap"></div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+        </section>
+
+        <div id="modal" class="modal hidden">
+            <div id="modalContent" class="modal-card"></div>
+        </div>
+
+        <div id="toast" class="toast hidden"></div>
+
+        <div id="loader" class="loader hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+        <script type="module" src="js/app.js"></script>
+    </body>
+</html>
