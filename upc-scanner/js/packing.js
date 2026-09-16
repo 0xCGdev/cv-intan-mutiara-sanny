@@ -85,7 +85,11 @@ function normalizePackingRow(row) {
 
         operator: String(row?.operator ?? row?.petugas ?? row?.PETUGAS ?? "-").trim(),
 
-        timestamp: String(row?.timestamp ?? row?.TIMESTAMP ?? "").trim(),
+        // KHUSUS TIMESTAMP LOG SCAN
+        timestamp: String(row?.timestamp ?? row?.TIMESTAMP ?? row?.lastScan ?? "").trim(),
+
+        // KHUSUS LAST UPDATE TRANSAKSI
+        lastUpdate: String(row?.lastUpdate ?? row?.LAST_UPDATE ?? "").trim(),
     };
 }
 
@@ -100,6 +104,16 @@ function parseTimestamp(value) {
 
     if (slashMatch) {
         const date = new Date(Number(slashMatch[3]), Number(slashMatch[2]) - 1, Number(slashMatch[1]), Number(slashMatch[4]), Number(slashMatch[5]), Number(slashMatch[6] || 0));
+
+        if (!Number.isNaN(date.getTime())) {
+            return date;
+        }
+    }
+
+    const dashMatch = text.match(/^(\d{2})-(\d{2})-(\d{4})[ ,T]+(\d{2}):(\d{2})(?::(\d{2}))?/);
+
+    if (dashMatch) {
+        const date = new Date(Number(dashMatch[3]), Number(dashMatch[2]) - 1, Number(dashMatch[1]), Number(dashMatch[4]), Number(dashMatch[5]), Number(dashMatch[6] || 0));
 
         if (!Number.isNaN(date.getTime())) {
             return date;
@@ -123,9 +137,13 @@ function formatTimestamp(value) {
     }
 
     const day = String(date.getDate()).padStart(2, "0");
+
     const month = String(date.getMonth() + 1).padStart(2, "0");
+
     const year = date.getFullYear();
+
     const hour = String(date.getHours()).padStart(2, "0");
+
     const minute = String(date.getMinutes()).padStart(2, "0");
 
     return `${day}/${month}/${year} ${hour}:${minute}`;
@@ -201,7 +219,7 @@ function timestampHtml(value) {
 }
 
 function isTodayRow(row) {
-    const timestamp = String(row?.timestamp ?? row?.TIMESTAMP ?? "").trim();
+    const timestamp = String(row?.timestamp ?? row?.TIMESTAMP ?? row?.lastUpdate ?? row?.LAST_UPDATE ?? "").trim();
 
     if (!timestamp) {
         return false;
@@ -257,77 +275,52 @@ function preparePackingLayout() {
 
     page.innerHTML = `
         <div class="page-head">
-            <h2>Packing</h2>
-            <p>Scan barang yang akan dikirim.</p>
+
+            <h2>
+                Packing
+            </h2>
+
+            <p>
+                Scan barang yang akan dikirim.
+            </p>
+
         </div>
 
         <div class="packing-top-grid">
 
-            <section class="panel packing-select-card">
-
-                <div class="section-title">
-                    Pilih Shipment
-                </div>
-
-                <div class="packing-field">
-
-                    <label for="packingShipmentSelect">
-                        Shipment
-                    </label>
-
-                    <select
-                        id="packingShipmentSelect"
-                        class="input">
-
-                        <option value="">
-                            Pilih Shipment
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div class="packing-shipment-summary">
-
-                    <div class="packing-summary-item">
-
-                        <span>
-                            Jumlah Barang
-                        </span>
-
-                        <strong
-                            id="packingShipmentItemCount">
-                            -
-                        </strong>
-
-                    </div>
-
-                    <div class="packing-summary-item">
-
-                        <span>
-                            Jumlah Qty
-                        </span>
-
-                        <strong
-                            id="packingShipmentQtyCount">
-                            -
-                        </strong>
-
-                    </div>
-
-                </div>
-
-            </section>
-
             <section class="panel packing-scanner-card">
 
-                <div class="section-title">
-                    Scanner
+                <div class="packing-scanner-head">
+
+                    <div>
+
+                        <div class="section-title">
+                            Scanner
+                        </div>
+
+                        <div
+                            id="packingActiveShipmentLabel"
+                            class="packing-active-shipment">
+                            Shipment: -
+                        </div>
+
+                    </div>
+
+                    <button
+                        id="packingChooseShipmentBtn"
+                        class="btn btn-soft"
+                        type="button">
+                        Pilih Shipment
+                    </button>
+
                 </div>
 
                 <div class="scanner-status">
+
                     <span class="dot"></span>
+
                     Scanner Ready
+
                 </div>
 
                 <div class="scan-actions">
@@ -433,11 +426,7 @@ function preparePackingLayout() {
 
     page.dataset.packingReady = "1";
 
-    const shipmentSelect = $("packingShipmentSelect");
-
-    shipmentSelect?.addEventListener("change", async (event) => {
-        await selectShipment(event.target.value);
-    });
+    $("packingChooseShipmentBtn")?.addEventListener("click", showShipmentSelectModal);
 
     $("packingCameraBtn")?.addEventListener("click", openPackingCamera);
 
@@ -490,71 +479,109 @@ function preparePackingLayout() {
     });
 }
 
-function renderShipmentSelector() {
-    const select = $("packingShipmentSelect");
+function renderActiveShipment() {
+    const label = $("packingActiveShipmentLabel");
 
-    if (!select) {
+    if (!label) {
         return;
     }
 
-    const current = activeShipmentId;
-
-    const rows = Array.isArray(shipments) ? shipments : [];
-
-    select.innerHTML = `
-        <option value="">
-            Pilih Shipment
-        </option>
-
-        ${rows
-            .filter((shipment) => getStatus(shipment) !== "SELESAI")
-            .map((shipment) => {
-                const id = getShipmentId(shipment);
-
-                if (!id) {
-                    return "";
-                }
-
-                return `
-                    <option
-                        value="${esc(id)}"
-                        ${id === current ? "selected" : ""}>
-                        ${esc(id)}
-                    </option>
-                `;
-            })
-            .join("")}
-    `;
+    label.textContent = activeShipmentId ? `Shipment: ${activeShipmentId}` : "Shipment: -";
 }
 
-function renderShipmentSummary() {
-    const itemEl = $("packingShipmentItemCount");
+function showShipmentSelectModal() {
+    const modal = $("modal");
+    const content = $("modalContent");
 
-    const qtyEl = $("packingShipmentQtyCount");
-
-    if (!activeShipmentId || !activeShipment) {
-        if (itemEl) {
-            itemEl.textContent = "-";
-        }
-
-        if (qtyEl) {
-            qtyEl.textContent = "-";
-        }
+    if (!modal || !content) {
+        toast("Modal tidak ditemukan.", true);
 
         return;
     }
 
-    const items = getShipmentItems(activeShipment);
+    stopPackingCamera();
 
-    const totalQty = items.reduce((sum, item) => sum + Number(item?.qty ?? item?.QTY ?? item?.qtyTarget ?? item?.QTY_TARGET ?? 0), 0);
+    const availableShipments = (Array.isArray(shipments) ? shipments : [])
+        .filter((shipment) => getStatus(shipment) !== "SELESAI")
+        .map((shipment) => getShipmentId(shipment))
+        .filter(Boolean);
 
-    if (itemEl) {
-        itemEl.textContent = items.length;
+    if (!availableShipments.length) {
+        toast("Tidak ada Shipment yang tersedia untuk Packing.", true);
+
+        return;
     }
 
-    if (qtyEl) {
-        qtyEl.textContent = totalQty;
-    }
+    content.innerHTML = `
+        <div class="modal-head">
+
+            <h3>
+                Pilih Shipment
+            </h3>
+
+            <button
+                class="close"
+                data-action="close-modal"
+                aria-label="Tutup"
+                type="button">
+                ×
+            </button>
+
+        </div>
+
+        <div class="packing-shipment-modal">
+
+            <div class="packing-field">
+
+                <label
+                    for="packingShipmentModalSelect">
+                    Shipment
+                </label>
+
+                <select
+                    id="packingShipmentModalSelect"
+                    class="input">
+
+                    <option value="">
+                        Pilih Shipment
+                    </option>
+
+                    ${availableShipments
+                        .map(
+                            (id) => `
+                                <option
+                                    value="${esc(id)}"
+                                    ${id === activeShipmentId ? "selected" : ""}>
+                                    ${esc(id)}
+                                </option>
+                            `,
+                        )
+                        .join("")}
+
+                </select>
+
+            </div>
+
+        </div>
+    `;
+
+    modal.classList.remove("hidden");
+
+    const select = $("packingShipmentModalSelect");
+
+    select?.addEventListener("change", async (event) => {
+        const shipmentId = String(event.target.value || "").trim();
+
+        if (!shipmentId) {
+            return;
+        }
+
+        await selectShipment(shipmentId);
+    });
+
+    requestAnimationFrame(() => {
+        select?.focus();
+    });
 }
 
 function renderLastResult(row) {
@@ -598,11 +625,6 @@ function renderLastResult(row) {
             ${esc(item.upc || "-")}
             · SKU:
             ${esc(item.sku || "-")}
-        </div>
-
-        <div class="last-meta">
-            Petugas:
-            ${esc(item.operator || "-")}
         </div>
 
         <div class="last-meta">
@@ -650,8 +672,11 @@ function renderHistory() {
         return;
     }
 
+    // Ambil setiap record LOG SCAN secara individual.
+    // Tidak dilakukan grouping berdasarkan UPC.
     const rows = todayHistoryRows.map(normalizePackingRow).filter((row) => row.upc && row.shipmentId);
 
+    // Terbaru di atas
     rows.sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() || 0) - (parseTimestamp(a.timestamp)?.getTime() || 0));
 
     container.innerHTML = `
@@ -694,7 +719,7 @@ function renderHistory() {
                                         </td>
 
                                         <td>
-                                            ${esc(row.operator)}
+                                            ${esc(row.operator || "-")}
                                         </td>
 
                                         <td>
@@ -743,26 +768,47 @@ function renderPackingResult() {
         }
 
         container.innerHTML = `
-            <table class="table packing-result-table">
+            <table
+                class="table packing-result-table">
 
                 <thead>
+
                     <tr>
-                        <th>UPC</th>
-                        <th>SKU</th>
-                        <th>Nama Barang</th>
-                        <th>Qty</th>
-                        <th>Last Update</th>
+
+                        <th>
+                            UPC
+                        </th>
+
+                        <th>
+                            SKU
+                        </th>
+
+                        <th>
+                            Nama Barang
+                        </th>
+
+                        <th>
+                            Qty
+                        </th>
+
+                        <th>
+                            Last Update
+                        </th>
+
                     </tr>
+
                 </thead>
 
                 <tbody>
 
                     <tr>
+
                         <td
                             colspan="5"
                             class="packing-result-empty">
                             Pilih Shipment untuk melihat hasil scan.
                         </td>
+
                     </tr>
 
                 </tbody>
@@ -821,16 +867,33 @@ function renderPackingResult() {
     rows.sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() || 0) - (parseTimestamp(a.timestamp)?.getTime() || 0));
 
     container.innerHTML = `
-        <table class="table packing-result-table">
+        <table
+            class="table packing-result-table">
 
             <thead>
 
                 <tr>
-                    <th>UPC</th>
-                    <th>SKU</th>
-                    <th>Nama Barang</th>
-                    <th>Qty</th>
-                    <th>Last Update</th>
+
+                    <th>
+                        UPC
+                    </th>
+
+                    <th>
+                        SKU
+                    </th>
+
+                    <th>
+                        Nama Barang
+                    </th>
+
+                    <th>
+                        Qty
+                    </th>
+
+                    <th>
+                        Last Update
+                    </th>
+
                 </tr>
 
             </thead>
@@ -861,7 +924,7 @@ function renderPackingResult() {
                                         </td>
 
                                         <td>
-                                            ${timestampHtml(row.timestamp)}
+                                            ${timestampHtml(row.lastUpdate)}
                                         </td>
 
                                     </tr>
@@ -870,12 +933,14 @@ function renderPackingResult() {
                               .join("")
                         : `
                             <tr>
+
                                 <td
                                     colspan="5"
                                     class="packing-result-empty">
                                     Belum ada hasil scan untuk
                                     ${esc(activeShipmentId)}.
                                 </td>
+
                             </tr>
                         `
                 }
@@ -931,8 +996,7 @@ function renderActionArea() {
 }
 
 function renderPackingPage() {
-    renderShipmentSelector();
-    renderShipmentSummary();
+    renderActiveShipment();
     renderHistory();
     renderPackingResult();
     renderActionArea();
@@ -985,59 +1049,62 @@ async function loadShipments() {
 }
 
 async function loadTodayHistory() {
-    todayHistoryRows = [];
-
     try {
-        const response = await api("getShipments");
+        const response = await api("getTodayRowsForUser");
 
         if (!response?.success) {
+            console.warn("Gagal mengambil riwayat scan:", response?.message);
+
+            /*
+             * Jangan hapus riwayat yang sedang
+             * tampil jika server gagal merespons.
+             */
             renderHistory();
 
             return;
         }
 
-        const allShipments = getShipmentRows(response);
+        const rows = response.rows || response.data?.rows || [];
 
-        if (!Array.isArray(allShipments)) {
+        if (!Array.isArray(rows)) {
             renderHistory();
 
             return;
         }
 
-        const results = await Promise.all(
-            allShipments.map(async (shipment) => {
-                const shipmentId = getShipmentId(shipment);
+        /*
+         * Data dari server adalah sumber utama.
+         * Backend sudah mengembalikan semua scan
+         * hari ini satu per satu.
+         */
+        todayHistoryRows = rows.map((row) => ({
+            shipmentId: String(row.shipmentId || row.SHIPMENT_ID || ""),
 
-                if (!shipmentId) {
-                    return [];
-                }
+            upc: String(row.upc || row.UPC || ""),
 
-                try {
-                    const detail = await api("getShipment", {
-                        shipmentId,
-                    });
+            sku: String(row.sku || row.SKU || "-"),
 
-                    if (!detail?.success) {
-                        return [];
-                    }
+            name: String(row.name || row.NAMA_BARANG || "-"),
 
-                    return getPackingRows(detail).map(normalizePackingRow).filter(isTodayRow);
-                } catch (error) {
-                    console.warn("History shipment error:", shipmentId, error);
+            qty: Number(row.qty || row.QTY || 0),
 
-                    return [];
-                }
-            }),
-        );
+            operator: String(row.operator || row.operators || row.petugas || row.PETUGAS || "-"),
 
-        todayHistoryRows = results.flat();
+            /*
+             * Riwayat menggunakan TIMESTAMP,
+             * bukan LAST_UPDATE.
+             */
+            timestamp: row.timestamp || row.TIMESTAMP || row.lastScan || "",
+        }));
 
         renderHistory();
     } catch (error) {
         console.error("Load Packing History:", error);
 
-        todayHistoryRows = [];
-
+        /*
+         * Jangan kosongkan todayHistoryRows
+         * hanya karena request gagal.
+         */
         renderHistory();
     }
 }
@@ -1123,6 +1190,12 @@ export async function loadPacking() {
         await loadTodayHistory();
 
         renderPackingPage();
+
+        if (!activeShipmentId) {
+            setTimeout(() => {
+                showShipmentSelectModal();
+            }, 100);
+        }
     } catch (error) {
         console.error("Load Packing:", error);
 
@@ -1138,8 +1211,6 @@ async function selectShipment(shipmentId) {
     shipmentId = String(shipmentId || "").trim();
 
     stopPackingCamera();
-
-    const select = $("packingShipmentSelect");
 
     if (!shipmentId) {
         activeShipmentId = "";
@@ -1184,19 +1255,11 @@ async function selectShipment(shipmentId) {
 
         renderPackingPage();
 
-        if (select) {
-            select.blur();
-        }
+        closePackingModal();
 
         toast(`Shipment ${shipmentId} dipilih.`);
     } catch (error) {
         console.error("Select shipment error:", error);
-
-        if (select) {
-            select.value = activeShipmentId || "";
-
-            select.blur();
-        }
 
         toast(error?.message || "Gagal memilih Shipment.", true);
     } finally {
@@ -1453,12 +1516,10 @@ async function savePackingScan(shipmentId, upc, qty, item) {
 
         await refreshActiveShipment();
 
-        await loadTodayHistory();
-
         const responseItem = response.item || response.data?.item || item;
 
         const resultRow = {
-            shipmentId,
+            shipmentId: shipmentId,
 
             upc: responseItem?.upc || responseItem?.UPC || upc,
 
@@ -1466,16 +1527,32 @@ async function savePackingScan(shipmentId, upc, qty, item) {
 
             name: responseItem?.name || responseItem?.NAMA_BARANG || item?.name || item?.NAMA_BARANG || "-",
 
-            qty,
+            qty: Number(qty) || 1,
 
             operator: response.operator || response.petugas || responseItem?.operator || state.me?.name || "-",
 
-            timestamp: response.timestamp || responseItem?.timestamp || new Date(),
+            timestamp: response.timestamp || response.lastUpdate || responseItem?.timestamp || responseItem?.lastUpdate || new Date(),
         };
 
+        /*
+         * Tambahkan scan baru langsung ke riwayat.
+         *
+         * Jangan grouping UPC.
+         * Setiap kali scan = satu baris.
+         */
+        todayHistoryRows = [resultRow, ...(Array.isArray(todayHistoryRows) ? todayHistoryRows : [])];
+
+        /*
+         * Tampilkan riwayat terbaru.
+         */
+        renderHistory();
+
+        /*
+         * Tampilkan hasil scan terakhir.
+         */
         renderLastResult(resultRow);
 
-        toast(`✓ ${resultRow.name} · Qty ${qty}`);
+        toast(`✓ ${resultRow.name} · Qty ${resultRow.qty}`);
     } catch (error) {
         console.error("Save packing error:", error);
 
