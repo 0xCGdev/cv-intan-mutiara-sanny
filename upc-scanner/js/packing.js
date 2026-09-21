@@ -85,10 +85,8 @@ function normalizePackingRow(row) {
 
         operator: String(row?.operator ?? row?.petugas ?? row?.PETUGAS ?? "-").trim(),
 
-        // Timestamp khusus LOG SCAN
         timestamp: String(row?.timestamp ?? row?.TIMESTAMP ?? row?.lastScan ?? "").trim(),
 
-        // Last Update khusus tabel Packing
         lastUpdate: String(row?.lastUpdate ?? row?.LAST_UPDATE ?? "").trim(),
     };
 }
@@ -203,6 +201,7 @@ function formatRelativeTime(value) {
 
 function timestampHtml(value) {
     const full = formatTimestamp(value);
+
     const relative = formatRelativeTime(value);
 
     if (full === "-") {
@@ -262,6 +261,16 @@ function getShipmentRows(result) {
     return [];
 }
 
+function renderActiveShipmentButton() {
+    const button = $("packingChooseShipmentBtn");
+
+    if (!button) {
+        return;
+    }
+
+    button.textContent = activeShipmentId ? `DPV ${activeShipmentId}` : "Pilih DPV";
+}
+
 function preparePackingLayout() {
     const page = $("page-packing");
 
@@ -274,15 +283,28 @@ function preparePackingLayout() {
     }
 
     page.innerHTML = `
-        <div class="page-head">
+        <div class="page-head page-head-with-action">
 
-            <h2>
-                Packing
-            </h2>
+            <div>
 
-            <p>
-                Scan barang yang akan dikirim.
-            </p>
+                <h2>
+                    Packing
+                </h2>
+
+                <p>
+                    Scan barang yang akan dikirim.
+                </p>
+
+            </div>
+
+            <button
+                id="packingChooseShipmentBtn"
+                class="btn btn-soft page-head-action"
+                type="button">
+
+                Pilih DPV
+
+            </button>
 
         </div>
 
@@ -292,34 +314,17 @@ function preparePackingLayout() {
 
                 <div class="packing-scanner-head">
 
-                    <div>
-
-                        <div class="section-title">
-                            Scanner
-                        </div>
-
-                        <div
-                            id="packingActiveShipmentLabel"
-                            class="packing-active-shipment">
-                            Shipment: -
-                        </div>
-
+                    <div class="section-title">
+                        Scanner
                     </div>
 
-                    <button
-                        id="packingChooseShipmentBtn"
-                        class="btn btn-soft"
-                        type="button">
-                        Pilih Shipment
-                    </button>
+                    <div class="scanner-status">
 
-                </div>
+                        <span class="dot"></span>
 
-                <div class="scanner-status">
+                        Scanner Ready
 
-                    <span class="dot"></span>
-
-                    Scanner Ready
+                    </div>
 
                 </div>
 
@@ -329,14 +334,18 @@ function preparePackingLayout() {
                         id="packingCameraBtn"
                         class="btn btn-primary"
                         type="button">
+
                         Kamera
+
                     </button>
 
                     <button
                         id="packingManualFocusBtn"
                         class="btn btn-soft"
                         type="button">
+
                         Scanner
+
                     </button>
 
                 </div>
@@ -346,12 +355,14 @@ function preparePackingLayout() {
                     class="scan-input input"
                     inputmode="numeric"
                     autocomplete="off"
-                    placeholder="Pilih Shipment terlebih dahulu..."
+                    placeholder="Pilih DPV terlebih dahulu..."
                     aria-label="UPC Packing">
 
                 <div class="hint">
+
                     Scanner USB/Bluetooth dapat digunakan melalui
                     input ini. Barcode + Enter akan langsung diproses.
+
                 </div>
 
                 <div
@@ -367,7 +378,7 @@ function preparePackingLayout() {
                     </div>
 
                     <div class="last-meta">
-                        Pilih Shipment lalu mulai scan.
+                        Pilih DPV lalu mulai scan.
                     </div>
 
                 </div>
@@ -398,16 +409,30 @@ function preparePackingLayout() {
                     <div
                         id="packingResultTitle"
                         class="section-title">
+
                         Hasil scan packing
+
                     </div>
 
                     <div
                         id="packingResultSubtitle"
                         class="packing-result-subtitle">
-                        Pilih Shipment untuk melihat hasil scan.
+
+                        Pilih DPV untuk melihat hasil scan.
+
                     </div>
 
                 </div>
+
+                <button
+                    id="finishPackingBtn"
+                    class="btn btn-primary"
+                    type="button"
+                    disabled>
+
+                    Selesaikan Packing
+
+                </button>
 
             </div>
 
@@ -417,11 +442,6 @@ function preparePackingLayout() {
             </div>
 
         </section>
-
-        <div
-            id="packingActionArea"
-            class="packing-action-area">
-        </div>
     `;
 
     page.dataset.packingReady = "1";
@@ -479,18 +499,9 @@ function preparePackingLayout() {
     });
 }
 
-function renderActiveShipment() {
-    const label = $("packingActiveShipmentLabel");
-
-    if (!label) {
-        return;
-    }
-
-    label.textContent = activeShipmentId ? `Shipment: ${activeShipmentId}` : "Shipment: -";
-}
-
 function showShipmentSelectModal() {
     const modal = $("modal");
+
     const content = $("modalContent");
 
     if (!modal || !content) {
@@ -507,7 +518,7 @@ function showShipmentSelectModal() {
         .filter(Boolean);
 
     if (!availableShipments.length) {
-        toast("Tidak ada Shipment yang tersedia untuk Packing.", true);
+        toast("Tidak ada DPV yang tersedia untuk Packing.", true);
 
         return;
     }
@@ -516,7 +527,7 @@ function showShipmentSelectModal() {
         <div class="modal-head">
 
             <h3>
-                Pilih Shipment
+                Pilih DPV
             </h3>
 
             <button
@@ -524,7 +535,9 @@ function showShipmentSelectModal() {
                 data-action="close-modal"
                 aria-label="Tutup"
                 type="button">
+
                 ×
+
             </button>
 
         </div>
@@ -535,7 +548,9 @@ function showShipmentSelectModal() {
 
                 <label
                     for="packingShipmentModalSelect">
-                    Shipment
+
+                    DPV
+
                 </label>
 
                 <select
@@ -543,7 +558,7 @@ function showShipmentSelectModal() {
                     class="input">
 
                     <option value="">
-                        Pilih Shipment
+                        Pilih DPV
                     </option>
 
                     ${availableShipments
@@ -552,7 +567,9 @@ function showShipmentSelectModal() {
                                 <option
                                     value="${esc(id)}"
                                     ${id === activeShipmentId ? "selected" : ""}>
+
                                     ${esc(id)}
+
                                 </option>
                             `,
                         )
@@ -602,7 +619,7 @@ function renderLastResult(row) {
             </div>
 
             <div class="last-meta">
-                Pilih Shipment lalu mulai scan.
+                Pilih DPV lalu mulai scan.
             </div>
         `;
 
@@ -650,13 +667,17 @@ function renderLastError(message) {
         <div
             class="last-title"
             style="color:var(--danger)">
+
             SCAN GAGAL
+
         </div>
 
         <div
             class="last-name"
             style="color:var(--danger)">
+
             UPC Tidak Ditemukan
+
         </div>
 
         <div class="last-meta">
@@ -672,25 +693,43 @@ function renderHistory() {
         return;
     }
 
-    // Ambil setiap record LOG SCAN secara individual.
-    // Tidak dilakukan grouping berdasarkan UPC.
     const rows = todayHistoryRows.map(normalizePackingRow).filter((row) => row.upc && row.shipmentId);
 
-    // Terbaru di atas
     rows.sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() || 0) - (parseTimestamp(a.timestamp)?.getTime() || 0));
 
     container.innerHTML = `
         <table class="table">
 
             <thead>
+
                 <tr>
-                    <th>UPC</th>
-                    <th>SKU</th>
-                    <th>Nama Barang</th>
-                    <th>Qty</th>
-                    <th>Nama Petugas</th>
-                    <th>Timestamp</th>
+
+                    <th>
+                        UPC
+                    </th>
+
+                    <th>
+                        SKU
+                    </th>
+
+                    <th>
+                        Nama Barang
+                    </th>
+
+                    <th>
+                        Qty
+                    </th>
+
+                    <th>
+                        Nama Petugas
+                    </th>
+
+                    <th>
+                        Timestamp
+                    </th>
+
                 </tr>
+
             </thead>
 
             <tbody>
@@ -732,11 +771,15 @@ function renderHistory() {
                               .join("")
                         : `
                             <tr>
+
                                 <td
                                     colspan="6"
                                     class="packing-result-empty">
+
                                     Belum ada riwayat scan hari ini.
+
                                 </td>
+
                             </tr>
                         `
                 }
@@ -764,7 +807,7 @@ function renderPackingResult() {
         }
 
         if (subtitle) {
-            subtitle.textContent = "Pilih Shipment untuk melihat hasil scan.";
+            subtitle.textContent = "Pilih DPV untuk melihat hasil scan.";
         }
 
         container.innerHTML = `
@@ -806,7 +849,9 @@ function renderPackingResult() {
                         <td
                             colspan="5"
                             class="packing-result-empty">
-                            Pilih Shipment untuk melihat hasil scan.
+
+                            Pilih DPV untuk melihat hasil scan.
+
                         </td>
 
                     </tr>
@@ -820,11 +865,11 @@ function renderPackingResult() {
     }
 
     if (title) {
-        title.textContent = `Hasil scan packing ${activeShipmentId}`;
+        title.textContent = `Hasil scan packing DPV ${activeShipmentId}`;
     }
 
     if (subtitle) {
-        subtitle.textContent = "Hasil scan barang untuk shipment ini.";
+        subtitle.textContent = "Hasil scan barang untuk DPV ini.";
     }
 
     const sourceRows = packingRows.map(normalizePackingRow).filter((row) => row.upc);
@@ -848,6 +893,7 @@ function renderPackingResult() {
         existing.qty += Number(row.qty || 0);
 
         const currentTime = parseTimestamp(existing.lastUpdate)?.getTime() || 0;
+
         const newTime = parseTimestamp(row.lastUpdate)?.getTime() || 0;
 
         if (newTime >= currentTime) {
@@ -936,8 +982,10 @@ function renderPackingResult() {
                                 <td
                                     colspan="5"
                                     class="packing-result-empty">
+
                                     Belum ada hasil scan untuk
-                                    ${esc(activeShipmentId)}.
+                                    DPV ${esc(activeShipmentId)}.
+
                                 </td>
 
                             </tr>
@@ -950,61 +998,18 @@ function renderPackingResult() {
     `;
 }
 
-function renderActionArea() {
-    const actions = $("packingActionArea");
-
-    if (!actions) {
-        return;
-    }
-
-    if (!activeShipmentId) {
-        actions.innerHTML = "";
-
-        return;
-    }
-
-    const status = getStatus(activeShipment);
-
-    if (status === "PACKING" && packingRows.length) {
-        actions.innerHTML = `
-            <button
-                id="finishPackingBtn"
-                class="btn btn-primary"
-                type="button">
-                Selesaikan Packing
-            </button>
-        `;
-
-        $("finishPackingBtn")?.addEventListener("click", finishPacking);
-
-        return;
-    }
-
-    if (status === "READY LOADING") {
-        actions.innerHTML = `
-            <div class="packing-finished-message">
-                Packing sudah selesai.
-                Shipment siap untuk Loading.
-            </div>
-        `;
-
-        return;
-    }
-
-    actions.innerHTML = "";
-}
-
 function renderPackingPage() {
-    renderActiveShipment();
+    renderActiveShipmentButton();
     renderHistory();
     renderPackingResult();
-    renderActionArea();
 
     const input = $("packingScanInput");
 
     const cameraBtn = $("packingCameraBtn");
 
     const manualBtn = $("packingManualFocusBtn");
+
+    const finishBtn = $("finishPackingBtn");
 
     const status = getStatus(activeShipment);
 
@@ -1021,7 +1026,13 @@ function renderPackingPage() {
     if (input) {
         input.disabled = !canScan;
 
-        input.placeholder = canScan ? "Scan UPC di sini..." : "Pilih Shipment terlebih dahulu...";
+        input.placeholder = canScan ? "Scan UPC di sini..." : "Pilih DPV terlebih dahulu...";
+    }
+
+    if (finishBtn) {
+        finishBtn.disabled = !canScan || !packingRows.length;
+
+        finishBtn.onclick = finishPacking;
     }
 }
 
@@ -1030,7 +1041,7 @@ async function loadShipments() {
         const response = await api("getShipments");
 
         if (!response?.success) {
-            throw new Error(response?.message || "Gagal mengambil data Shipment.");
+            throw new Error(response?.message || "Gagal mengambil data DPV.");
         }
 
         shipments = getShipmentRows(response);
@@ -1054,10 +1065,6 @@ async function loadTodayHistory() {
         if (!response?.success) {
             console.warn("Gagal mengambil riwayat scan:", response?.message);
 
-            /*
-             * Jangan hapus riwayat yang sedang
-             * tampil jika server gagal merespons.
-             */
             renderHistory();
 
             return;
@@ -1071,11 +1078,6 @@ async function loadTodayHistory() {
             return;
         }
 
-        /*
-         * Data dari server adalah sumber utama.
-         * Backend sudah mengembalikan semua scan
-         * hari ini satu per satu.
-         */
         todayHistoryRows = rows.map((row) => ({
             shipmentId: String(row.shipmentId || row.SHIPMENT_ID || ""),
 
@@ -1089,10 +1091,6 @@ async function loadTodayHistory() {
 
             operator: String(row.operator || row.operators || row.petugas || row.PETUGAS || "-"),
 
-            /*
-             * Riwayat menggunakan TIMESTAMP,
-             * bukan LAST_UPDATE.
-             */
             timestamp: row.timestamp || row.TIMESTAMP || row.lastScan || "",
         }));
 
@@ -1100,10 +1098,6 @@ async function loadTodayHistory() {
     } catch (error) {
         console.error("Load Packing History:", error);
 
-        /*
-         * Jangan kosongkan todayHistoryRows
-         * hanya karena request gagal.
-         */
         renderHistory();
     }
 }
@@ -1231,17 +1225,17 @@ async function selectShipment(shipmentId) {
         });
 
         if (!response?.success) {
-            throw new Error(response?.message || "Shipment tidak ditemukan.");
+            throw new Error(response?.message || "DPV tidak ditemukan.");
         }
 
         const shipment = response.shipment || response.data?.shipment || null;
 
         if (!shipment) {
-            throw new Error("Data Shipment tidak valid.");
+            throw new Error("Data DPV tidak valid.");
         }
 
         if (getStatus(shipment) !== "PACKING") {
-            throw new Error("Shipment ini tidak sedang dalam proses Packing.");
+            throw new Error("DPV ini tidak sedang dalam proses Packing.");
         }
 
         activeShipmentId = shipmentId;
@@ -1256,11 +1250,11 @@ async function selectShipment(shipmentId) {
 
         closePackingModal();
 
-        toast(`Shipment ${shipmentId} dipilih.`);
+        toast(`DPV ${shipmentId} dipilih.`);
     } catch (error) {
-        console.error("Select shipment error:", error);
+        console.error("Select DPV error:", error);
 
-        toast(error?.message || "Gagal memilih Shipment.", true);
+        toast(error?.message || "Gagal memilih DPV.", true);
     } finally {
         busy(false);
 
@@ -1298,7 +1292,7 @@ async function processScan(upc) {
     }
 
     if (!activeShipmentId) {
-        toast("Pilih Shipment terlebih dahulu.", true);
+        toast("Pilih DPV terlebih dahulu.", true);
 
         focusPackingInput();
 
@@ -1306,7 +1300,7 @@ async function processScan(upc) {
     }
 
     if (getStatus(activeShipment) !== "PACKING") {
-        toast("Shipment ini tidak sedang dalam proses Packing.", true);
+        toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
     }
@@ -1375,7 +1369,9 @@ function showPackingConfirmModal(item) {
                 data-action="close-modal"
                 aria-label="Tutup"
                 type="button">
+
                 ×
+
             </button>
 
         </div>
@@ -1443,14 +1439,18 @@ function showPackingConfirmModal(item) {
                     type="button"
                     class="btn btn-secondary"
                     data-action="close-modal">
+
                     Batal
+
                 </button>
 
                 <button
                     type="button"
                     class="btn btn-primary"
                     id="savePackingScanBtn">
+
                     Simpan
+
                 </button>
 
             </div>
@@ -1498,7 +1498,7 @@ async function savePackingScan(shipmentId, upc, qty, item) {
         busy(true);
 
         if (!shipmentId) {
-            throw new Error("Shipment belum dipilih.");
+            throw new Error("DPV belum dipilih.");
         }
 
         const response = await api("packingScan", {
@@ -1518,7 +1518,7 @@ async function savePackingScan(shipmentId, upc, qty, item) {
         const responseItem = response.item || response.data?.item || item;
 
         const resultRow = {
-            shipmentId: shipmentId,
+            shipmentId,
 
             upc: responseItem?.upc || responseItem?.UPC || upc,
 
@@ -1533,22 +1533,10 @@ async function savePackingScan(shipmentId, upc, qty, item) {
             timestamp: response.timestamp || response.lastUpdate || responseItem?.timestamp || responseItem?.lastUpdate || new Date(),
         };
 
-        /*
-         * Tambahkan scan baru langsung ke riwayat.
-         *
-         * Jangan grouping UPC.
-         * Setiap kali scan = satu baris.
-         */
         todayHistoryRows = [resultRow, ...(Array.isArray(todayHistoryRows) ? todayHistoryRows : [])];
 
-        /*
-         * Tampilkan riwayat terbaru.
-         */
         renderHistory();
 
-        /*
-         * Tampilkan hasil scan terakhir.
-         */
         renderLastResult(resultRow);
 
         toast(`✓ ${resultRow.name} · Qty ${resultRow.qty}`);
@@ -1577,13 +1565,13 @@ async function refreshActiveShipment() {
     });
 
     if (!response?.success) {
-        throw new Error(response?.message || "Gagal mengambil Shipment.");
+        throw new Error(response?.message || "Gagal mengambil DPV.");
     }
 
     const shipment = response.shipment || response.data?.shipment || null;
 
     if (!shipment) {
-        throw new Error("Data Shipment tidak valid.");
+        throw new Error("Data DPV tidak valid.");
     }
 
     activeShipment = shipment;
@@ -1597,13 +1585,13 @@ async function refreshActiveShipment() {
 
 async function finishPacking() {
     if (!activeShipmentId) {
-        toast("Pilih Shipment terlebih dahulu.", true);
+        toast("Pilih DPV terlebih dahulu.", true);
 
         return;
     }
 
     if (getStatus(activeShipment) !== "PACKING") {
-        toast("Shipment ini tidak sedang dalam proses Packing.", true);
+        toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
     }
@@ -1617,7 +1605,7 @@ async function finishPacking() {
     const result = await Swal.fire({
         title: "Selesaikan Packing?",
 
-        text: "Setelah selesai, shipment siap untuk proses Loading.",
+        text: "Setelah selesai, DPV siap untuk proses Loading.",
 
         icon: "question",
 
@@ -1661,7 +1649,7 @@ async function finishPacking() {
 
         renderPackingPage();
 
-        toast("✓ Packing selesai. Shipment siap Loading.");
+        toast("✓ Packing selesai. DPV siap Loading.");
     } catch (error) {
         console.error("Finish packing error:", error);
 
@@ -1749,7 +1737,9 @@ function cameraMarkup() {
                 data-action="close-modal"
                 aria-label="Tutup"
                 type="button">
+
                 ×
+
             </button>
 
         </div>
@@ -1794,12 +1784,16 @@ function cameraMarkup() {
         <div
             class="camera-status"
             id="cameraStatus">
+
             Meminta akses kamera...
+
         </div>
 
         <div class="camera-help">
+
             Posisikan barcode mendatar di dalam
             kotak hijau.
+
         </div>
     `;
 }
@@ -1846,13 +1840,13 @@ function fixCameraDisplay() {
 
 async function openPackingCamera() {
     if (!activeShipmentId) {
-        toast("Pilih Shipment terlebih dahulu.", true);
+        toast("Pilih DPV terlebih dahulu.", true);
 
         return;
     }
 
     if (getStatus(activeShipment) !== "PACKING") {
-        toast("Shipment ini tidak sedang dalam proses Packing.", true);
+        toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
     }

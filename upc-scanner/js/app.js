@@ -16,6 +16,8 @@ import { bindPacking, loadPacking } from "./packing.js";
 
 import { bindLoading, loadLoading } from "./loading.js";
 
+import { bindMatching, loadMatching } from "./matching.js";
+
 import { bindShipment, loadShipment } from "./shipment.js";
 
 function closeMenu() {
@@ -51,6 +53,10 @@ function showPage(page) {
 
     if (page === "loading") {
         loadLoading();
+    }
+
+    if (page === "matching") {
+        loadMatching();
     }
 
     if (page === "shipments") {
@@ -145,6 +151,8 @@ bindScanner();
 bindPacking();
 
 bindLoading();
+
+bindMatching();
 
 bindShipment();
 

@@ -1,9 +1,9 @@
 :root {
     --green-950: #07301e;
     --green-900: #0b4228;
-    --green-800: #155c3b;
-    --green-700: #1c7a4d;
-    --green-600: #23935d;
+    --green-800: #125437;
+    --green-700: #176b43;
+    --green-600: #218c58;
     --green-500: #2eaa70;
     --green-100: #e3f4eb;
     --green-50: #f3faf6;
@@ -14,10 +14,10 @@
     --surface-muted: #f0f4f2;
 
     --text: #17231d;
-    --muted: #718078;
+    --muted: #64716a;
     --muted-light: #9ba7a1;
 
-    --border: #e2e9e5;
+    --border: #d8e2dc;
     --border-strong: #d3ddd7;
 
     --danger: #c54141;
@@ -127,10 +127,6 @@ canvas {
     background: #b4c2ba;
 }
 
-/* =========================================================
-   LOGO
-   ========================================================= */
-
 .logo {
     width: 40px;
     height: 40px;
@@ -154,10 +150,6 @@ canvas {
     object-fit: contain;
 }
 
-/* =========================================================
-   BUTTON
-   ========================================================= */
-
 .btn {
     min-height: 42px;
 
@@ -174,7 +166,7 @@ canvas {
     background: var(--surface-soft);
     color: var(--green-900);
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 750;
     line-height: 1;
 
@@ -239,10 +231,6 @@ canvas {
     margin-top: 16px;
 }
 
-/* =========================================================
-   INPUT
-   ========================================================= */
-
 .input {
     width: 100%;
     min-width: 0;
@@ -290,10 +278,6 @@ textarea.input {
     min-height: 100px;
     resize: vertical;
 }
-
-/* =========================================================
-   LOGIN
-   ========================================================= */
 
 .login {
     width: 100%;
@@ -355,7 +339,7 @@ textarea.input {
 
     color: var(--text);
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 750;
 }
 
@@ -374,20 +358,22 @@ textarea.input {
     line-height: 1.4;
 }
 
-/* =========================================================
-   APP / TOPBAR
-   ========================================================= */
-
 .app {
     width: 100%;
     min-height: 100dvh;
     overflow-x: hidden;
+
+    padding-top: var(--header-height);
 }
 
 .topbar {
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 70;
+    left: 0;
+    right: 0;
+
+    z-index: 100;
+    isolation: isolate;
 
     width: 100%;
     height: var(--header-height);
@@ -543,10 +529,6 @@ textarea.input {
     transform: scale(0.95);
 }
 
-/* =========================================================
-   LAYOUT / SIDEBAR
-   ========================================================= */
-
 .layout {
     width: 100%;
     min-width: 0;
@@ -629,7 +611,7 @@ body.menu-open .sidebar {
 
     text-align: left;
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 650;
 
     transition:
@@ -778,15 +760,11 @@ body.menu-open .menu-overlay {
     pointer-events: auto;
 }
 
-/* =========================================================
-   CONTENT / PAGE
-   ========================================================= */
-
 .content {
     width: 100%;
     min-width: 0;
 
-    padding: 18px 11px 34px;
+    padding: 20px 12px 36px;
 }
 
 .page-head {
@@ -814,7 +792,7 @@ body.menu-open .menu-overlay {
 
     color: var(--muted);
 
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.45;
 }
 
@@ -861,10 +839,6 @@ body.menu-open .menu-overlay {
     width: auto;
     max-width: 150px;
 }
-
-/* =========================================================
-   STAT CARDS
-   ========================================================= */
 
 .cards {
     width: 100%;
@@ -937,10 +911,6 @@ body.menu-open .menu-overlay {
 
     border-radius: 8px;
 }
-
-/* =========================================================
-   GENERAL SCANNER
-   ========================================================= */
 
 .scan-grid {
     width: 100%;
@@ -1077,10 +1047,6 @@ body.menu-open .menu-overlay {
     line-height: 1.4;
 }
 
-/* =========================================================
-   SECTION / TABLE
-   ========================================================= */
-
 .section-title {
     margin-bottom: 9px;
 
@@ -1169,10 +1135,6 @@ body.menu-open .menu-overlay {
     line-height: 1.5;
 }
 
-/* =========================================================
-   STATUS
-   ========================================================= */
-
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -1205,10 +1167,6 @@ body.menu-open .menu-overlay {
     background: var(--danger-bg);
     color: var(--danger);
 }
-
-/* =========================================================
-   PROCESS SCANNER / CAMERA
-   ========================================================= */
 
 .process-scanner {
     margin-top: 9px;
@@ -1358,10 +1316,6 @@ body.menu-open .menu-overlay {
     text-align: center;
 }
 
-/* =========================================================
-   GENERAL MODAL
-   ========================================================= */
-
 .modal {
     position: fixed;
     inset: 0;
@@ -1472,10 +1426,6 @@ body.menu-open .menu-overlay {
     color: var(--green-900);
 }
 
-/* =========================================================
-   SCAN CONFIRM
-   ========================================================= */
-
 .scan-confirm-row {
     display: grid;
 
@@ -1527,48 +1477,59 @@ body.menu-open .menu-overlay {
     margin-top: 14px;
 }
 
-/* =========================================================
-   TOAST / LOADER
-   ========================================================= */
-
 .toast {
     position: fixed;
 
-    left: 10px;
-    right: 10px;
+    right: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: auto;
 
-    bottom: calc(10px + env(safe-area-inset-bottom));
-
-    z-index: 1100;
+    z-index: 99999;
 
     width: auto;
+    max-width: min(380px, calc(100vw - 40px));
 
-    padding: 10px 12px;
+    display: flex;
+    align-items: center;
 
-    border-radius: 11px;
+    padding: 12px 16px;
 
-    background: var(--green-900);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+
+    background: var(--green-800);
     color: #ffffff;
 
-    box-shadow: var(--shadow);
+    box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.18),
+        0 3px 10px rgba(0, 0, 0, 0.08);
 
-    text-align: center;
+    text-align: left;
 
-    font-size: 10px;
-    line-height: 1.35;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.4;
+
+    pointer-events: none;
 
     animation: toast-in 0.18s ease-out;
 }
 
+.toast:not(.error) {
+    background: var(--green-800);
+    border-color: var(--green-700);
+}
+
 .toast.error {
     background: var(--danger);
+    border-color: #b73535;
 }
 
 .loader {
     position: fixed;
     inset: 0;
 
-    z-index: 1000;
+    z-index: 99990;
 
     display: grid;
     place-items: center;
@@ -1590,10 +1551,6 @@ body.menu-open .menu-overlay {
 
     animation: spin 0.8s linear infinite;
 }
-
-/* =========================================================
-   SWEETALERT
-   ========================================================= */
 
 .swal2-container {
     z-index: 2000 !important;
@@ -1687,10 +1644,6 @@ body.menu-open .menu-overlay {
 .swal2-cancel {
     background: #68736d !important;
 }
-
-/* =========================================================
-   SHIPMENT LIST
-   ========================================================= */
 
 .shipment-toolbar-actions {
     min-width: 0;
@@ -1904,10 +1857,6 @@ body.menu-open .menu-overlay {
     line-height: 1.4;
 }
 
-/* =========================================================
-   SHIPMENT MODAL
-   ========================================================= */
-
 .shipment-modal {
     position: fixed;
     inset: 0;
@@ -1980,8 +1929,8 @@ body.menu-open .menu-overlay {
 
     color: #7c8982;
 
-    font-size: 11px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 .shipment-modal-close {
@@ -2036,15 +1985,9 @@ body.menu-open .menu-overlay {
     background: #ffffff;
 }
 
-/* =========================================================
-   SHIPMENT FORM
-   ========================================================= */
-
 .shipment-form-grid {
     display: grid;
-
-    grid-template-columns: 1fr;
-
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -2264,10 +2207,6 @@ body.menu-open .menu-overlay {
 .shipment-add-item-card-btn {
     min-height: 40px;
 }
-
-/* =========================================================
-   SHIPMENT DETAIL
-   ========================================================= */
 
 .shipment-detail-dialog {
     width: min(100%, 1000px);
@@ -2533,7 +2472,7 @@ body.menu-open .menu-overlay {
 
     box-shadow: none;
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 750;
 
     transition:
@@ -2563,10 +2502,6 @@ body.menu-open .menu-overlay {
 .shipment-delete-btn {
     color: #dc3545;
 }
-
-/* =========================================================
-   SHIPMENT DELETE MODAL
-   ========================================================= */
 
 .shipment-delete-confirm-modal,
 .shipment-delete-item-modal {
@@ -2634,12 +2569,6 @@ body.menu-open .menu-overlay {
     justify-content: flex-end;
 }
 
-/* =========================================================
-   PACKING - NEW STRUCTURE
-   Scanner + Riwayat
-   Hasil Scan di bawah
-   ========================================================= */
-
 .packing-top-grid {
     width: 100%;
     min-width: 0;
@@ -2657,160 +2586,6 @@ body.menu-open .menu-overlay {
 .packing-result-card {
     width: 100%;
     min-width: 0;
-}
-
-/* =========================================================
-   PACKING SCANNER
-   ========================================================= */
-
-.packing-scanner-card {
-    display: flex;
-    flex-direction: column;
-
-    overflow: hidden;
-}
-
-.packing-scanner-head {
-    width: 100%;
-    min-width: 0;
-
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-
-    gap: 10px;
-}
-
-.packing-scanner-head .section-title {
-    min-width: 0;
-
-    margin-bottom: 0;
-}
-
-.packing-select-shipment-btn {
-    flex: 0 0 auto;
-
-    min-height: 38px;
-
-    padding: 8px 11px;
-
-    border-radius: 9px;
-
-    font-size: 10px;
-    font-weight: 750;
-
-    white-space: nowrap;
-}
-
-.packing-active-shipment {
-    margin-top: 4px;
-
-    color: var(--muted);
-
-    font-size: 10px;
-    font-weight: 650;
-
-    line-height: 1.35;
-
-    overflow-wrap: anywhere;
-}
-
-.packing-active-shipment strong {
-    color: var(--green-900);
-
-    font-weight: 850;
-}
-
-.packing-scanner-card .scan-actions {
-    margin-top: 11px;
-}
-
-.packing-scanner-card .scan-input {
-    margin-top: 9px;
-}
-
-/* =========================================================
-   PACKING HISTORY
-   ========================================================= */
-
-.packing-history-card {
-    display: flex;
-    flex-direction: column;
-
-    overflow: hidden;
-}
-
-.packing-history-card .section-title {
-    flex: 0 0 auto;
-
-    margin-bottom: 9px;
-}
-
-.packing-history-card .table-wrap {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-
-    flex: 1 1 auto;
-
-    overflow-x: auto;
-    overflow-y: auto;
-
-    -webkit-overflow-scrolling: touch;
-}
-
-/*
-   Riwayat Scan:
-   Setiap scan = satu baris.
-   UPC yang sama TIDAK digabung.
-*/
-.packing-history-card .table {
-    width: 100%;
-
-    min-width: 760px;
-}
-
-.packing-history-card .table th,
-.packing-history-card .table td {
-    white-space: nowrap;
-}
-
-.packing-history-card .table th:nth-child(3),
-.packing-history-card .table td:nth-child(3) {
-    min-width: 180px;
-    max-width: 280px;
-}
-
-.packing-history-card .table th:nth-child(4),
-.packing-history-card .table td:nth-child(4) {
-    min-width: 60px;
-
-    text-align: center;
-}
-
-.packing-history-card .table th:nth-child(5),
-.packing-history-card .table td:nth-child(5) {
-    min-width: 120px;
-}
-
-.packing-history-card .table th:nth-child(6),
-.packing-history-card .table td:nth-child(6) {
-    min-width: 145px;
-}
-
-.packing-history-card .packing-result-empty {
-    height: auto;
-
-    padding: 30px 15px !important;
-}
-
-/* =========================================================
-   PACKING RESULT
-   ========================================================= */
-
-.packing-result-card {
-    width: 100%;
-    min-width: 0;
 
     overflow: hidden;
 }
@@ -2820,16 +2595,29 @@ body.menu-open .menu-overlay {
     min-width: 0;
 
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
 
-    gap: 10px;
+    gap: 16px;
 
     margin-bottom: 10px;
 }
 
+.packing-result-head > div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
 .packing-result-head .section-title {
     margin-bottom: 0;
+}
+
+.packing-result-head #finishPackingBtn {
+    flex: 0 0 auto;
+
+    min-width: 160px;
+
+    white-space: nowrap;
 }
 
 .packing-result-subtitle {
@@ -2845,10 +2633,24 @@ body.menu-open .menu-overlay {
     width: 100%;
     max-width: 100%;
 
+    min-height: 390px;
+    max-height: 390px;
+
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
 
     -webkit-overflow-scrolling: touch;
+
+    border-radius: 10px;
+}
+
+.packing-result-table thead th {
+    position: sticky;
+    top: 0;
+
+    z-index: 3;
+
+    background: var(--surface-soft);
 }
 
 .packing-result-table {
@@ -2910,12 +2712,8 @@ body.menu-open .menu-overlay {
 }
 
 .packing-result-card .packing-result-empty {
-    height: auto !important;
+    height: 200px !important;
 }
-
-/* =========================================================
-   PACKING ACTION
-   ========================================================= */
 
 .packing-action-area {
     width: 100%;
@@ -2941,16 +2739,12 @@ body.menu-open .menu-overlay {
     background: var(--green-50);
     color: var(--green-900);
 
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 650;
     line-height: 1.4;
 
     text-align: center;
 }
-
-/* =========================================================
-   PACKING TIMESTAMP
-   ========================================================= */
 
 .packing-timestamp {
     position: relative;
@@ -3009,10 +2803,6 @@ body.menu-open .menu-overlay {
     opacity: 1;
 }
 
-/* =========================================================
-   PACKING SHIPMENT SELECT MODAL
-   ========================================================= */
-
 .packing-shipment-modal {
     width: 100%;
     min-width: 0;
@@ -3026,9 +2816,455 @@ body.menu-open .menu-overlay {
     width: 100%;
 }
 
-/* =========================================================
-   DESKTOP 700+
-   ========================================================= */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes barcode-laser {
+    0%,
+    100% {
+        transform: translateY(-38px);
+        opacity: 0.55;
+    }
+
+    50% {
+        transform: translateY(38px);
+        opacity: 1;
+    }
+}
+
+@keyframes modal-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modal-slide-up {
+    from {
+        transform: translateY(18px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes modal-scale-in {
+    from {
+        transform: scale(0.98);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes toast-in {
+    from {
+        transform: translateY(8px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.matching-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.matching-shipment-selector {
+    flex: 1;
+    min-width: 0;
+}
+
+.matching-shipment-selector .input {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.matching-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.matching-search {
+    width: 210px;
+}
+
+.matching-search .input {
+    width: 100%;
+    min-height: 40px;
+}
+
+.matching-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+
+    padding: 0;
+
+    border: 1px solid var(--border);
+    border-radius: 9px;
+
+    background: var(--surface);
+    color: var(--muted);
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.matching-sort-btn:hover {
+    background: var(--green-50);
+    border-color: var(--green-100);
+    color: var(--green-700);
+}
+
+.matching-sort-btn:active {
+    transform: scale(0.97);
+}
+
+.matching-top-bar .matching-finish-btn {
+    width: auto;
+    min-width: 190px;
+    min-height: 40px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.matching-table-card {
+    overflow: hidden;
+}
+
+.matching-table-card .table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.matching-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.matching-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 12px 14px;
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 650;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.matching-table tbody td {
+    padding: 13px 14px;
+    border-top: 1px solid #edf2ef;
+    color: var(--text);
+    font-size: 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.matching-table th:nth-child(n + 3),
+.matching-table td:nth-child(n + 3) {
+    text-align: center;
+}
+
+.matching-row {
+    background: #ffffff;
+}
+
+.matching-row.mismatch {
+    background: #fff0f0;
+}
+
+.matching-sku {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 600;
+}
+
+.matching-status-dot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: #21a45a;
+}
+
+.matching-row.mismatch .matching-status-dot {
+    background: #c62828;
+}
+
+.matching-upc {
+    margin-top: 3px;
+    color: #9aa8b5;
+    font-size: 11px;
+}
+
+.matching-difference {
+    color: #c62828;
+    font-weight: 750;
+}
+
+.matching-difference.matching-ok {
+    color: #148a4b;
+}
+
+.matching-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 0 2px;
+}
+
+.matching-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid #dce5e0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.matching-page-btn:hover:not(:disabled) {
+    background: var(--green-50);
+    border-color: var(--green-100);
+}
+
+.matching-page-btn.active {
+    background: var(--green-600);
+    border-color: var(--green-600);
+    color: #ffffff;
+}
+
+.matching-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.matching-summary {
+    margin-top: 18px;
+}
+
+.matching-summary-title {
+    margin-bottom: 16px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.matching-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.matching-summary-item {
+    min-width: 0;
+}
+
+.matching-summary-label {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+.matching-summary-value {
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1;
+}
+
+.matching-total-error {
+    color: #c62828;
+}
+
+.matching-summary .matching-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid #edf2ef;
+    color: #d32f2f;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.matching-warning-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    border-radius: 50%;
+    background: #fdeaea;
+    color: #d32f2f;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.matching-finish-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.page-head-with-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.page-head-with-action > div {
+    min-width: 0;
+}
+
+.page-head-action {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* Packing & Loading */
+.packing-scanner-head {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.packing-scanner-head > div:first-child {
+    min-width: 0;
+}
+
+.packing-scanner-head .section-title {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+.packing-scanner-head .scanner-status {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-top: 1px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.packing-scanner-head .dot {
+    width: 8px;
+    height: 8px;
+    flex-basis: 8px;
+}
+
+.packing-history-card .section-title,
+.packing-result-card .section-title {
+    font-size: 14px;
+}
+
+.packing-history-card .table,
+.packing-result-table {
+    font-size: 12px;
+}
+
+.packing-history-card .table th,
+.packing-result-table th {
+    font-size: 10px;
+}
+
+.packing-history-card .table td,
+.packing-result-table td {
+    font-size: 12px;
+}
+
+.packing-result-subtitle {
+    font-size: 10px;
+}
+
+.packing-select-shipment-btn,
+#packingChooseShipmentBtn,
+#loadingChooseShipmentBtn,
+.page-head-action {
+    border: 1px solid var(--border-strong);
+    background: #ffffff;
+    color: var(--green-900);
+}
+
+.packing-select-shipment-btn:hover,
+#packingChooseShipmentBtn:hover,
+#loadingChooseShipmentBtn:hover,
+.page-head-action:hover {
+    border-color: var(--green-600);
+    background: var(--green-50);
+    color: var(--green-900);
+}
+
+.page-head-with-action {
+    align-items: flex-start;
+}
+
+.page-head-with-action .page-head-action {
+    margin-top: 1px;
+}
 
 @media (min-width: 700px) {
     :root {
@@ -3052,29 +3288,21 @@ body.menu-open .menu-overlay {
     }
 
     .layout {
-        display: flex;
-
         width: 100%;
-        max-width: none;
-
-        margin: 0;
-
-        align-items: flex-start;
+        min-width: 0;
     }
 
     .sidebar {
-        position: sticky;
+        position: fixed;
 
         top: var(--header-height);
+        left: 0;
+        bottom: 0;
 
-        left: auto;
-        bottom: auto;
+        z-index: 80;
 
         width: var(--sidebar-width);
-
         height: calc(100dvh - var(--header-height));
-
-        flex: 0 0 var(--sidebar-width);
 
         padding: 15px 10px;
 
@@ -3090,11 +3318,11 @@ body.menu-open .menu-overlay {
     .content {
         width: calc(100% - var(--sidebar-width));
 
-        flex: 1;
-
         min-width: 0;
 
-        padding: 25px 24px 42px;
+        margin-left: var(--sidebar-width);
+
+        padding: 27px 26px 44px;
     }
 
     .page-head {
@@ -3197,10 +3425,6 @@ body.menu-open .menu-overlay {
         display: none;
     }
 
-    .shipment-form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .shipment-item-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -3212,12 +3436,6 @@ body.menu-open .menu-overlay {
     .shipment-detail-dialog {
         width: min(100%, 1100px);
     }
-
-    /* =========================================
-       PACKING DESKTOP
-       Scanner + Riwayat = 2 kolom
-       Hasil Scan = full width bawah
-       ========================================= */
 
     .packing-top-grid {
         grid-template-columns:
@@ -3248,10 +3466,6 @@ body.menu-open .menu-overlay {
     }
 }
 
-/* =========================================================
-   DESKTOP BESAR 1200+
-   ========================================================= */
-
 @media (min-width: 1200px) {
     :root {
         --sidebar-width: 230px;
@@ -3280,10 +3494,6 @@ body.menu-open .menu-overlay {
     .shipment-card {
         padding: 14px;
     }
-
-    /* =========================================
-       PACKING LARGE DESKTOP
-       ========================================= */
 
     .packing-top-grid {
         grid-template-columns:
@@ -3314,10 +3524,6 @@ body.menu-open .menu-overlay {
         min-width: 820px;
     }
 }
-
-/* =========================================================
-   MOBILE <= 699
-   ========================================================= */
 
 @media (max-width: 699px) {
     .shipment-modal {
@@ -3362,10 +3568,6 @@ body.menu-open .menu-overlay {
         min-height: 40px;
     }
 
-    /* =========================================
-       PACKING MOBILE
-       ========================================= */
-
     .packing-top-grid {
         grid-template-columns: 1fr;
 
@@ -3379,10 +3581,6 @@ body.menu-open .menu-overlay {
         min-height: 0;
 
         height: auto;
-    }
-
-    .packing-scanner-head {
-        align-items: flex-start;
     }
 
     .packing-select-shipment-btn {
@@ -3432,12 +3630,17 @@ body.menu-open .menu-overlay {
     .packing-action-area .btn {
         width: 100%;
     }
-}
 
-/* =========================================================
-   TABLET / SMALL DESKTOP
-   700 - 899
-   ========================================================= */
+    .toast {
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        max-width: calc(100vw - 24px);
+
+        padding: 11px 14px;
+
+        font-size: 10px;
+    }
+}
 
 @media (min-width: 700px) and (max-width: 899px) {
     .packing-top-grid {
@@ -3457,10 +3660,6 @@ body.menu-open .menu-overlay {
         max-height: 300px;
     }
 }
-
-/* =========================================================
-   MOBILE <= 430
-   ========================================================= */
 
 @media (max-width: 430px) {
     .toolbar {
@@ -3501,12 +3700,6 @@ body.menu-open .menu-overlay {
         width: 100%;
     }
 
-    /* PACKING */
-
-    .packing-scanner-head {
-        gap: 7px;
-    }
-
     .packing-select-shipment-btn {
         min-height: 35px;
 
@@ -3536,10 +3729,6 @@ body.menu-open .menu-overlay {
         text-align: center;
     }
 }
-
-/* =========================================================
-   MOBILE <= 360
-   ========================================================= */
 
 @media (max-width: 360px) {
     .content {
@@ -3573,16 +3762,8 @@ body.menu-open .menu-overlay {
         padding-right: 9px;
     }
 
-    /* PACKING */
-
-    .packing-scanner-head {
-        flex-direction: column;
-
-        gap: 8px;
-    }
-
     .packing-select-shipment-btn {
-        width: 100%;
+        width: auto;
     }
 
     .packing-history-card .table {
@@ -3593,10 +3774,6 @@ body.menu-open .menu-overlay {
         min-height: 110px !important;
     }
 }
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
     *,
@@ -3611,71 +3788,69 @@ body.menu-open .menu-overlay {
     }
 }
 
-/* =========================================================
-   ANIMATIONS
-   ========================================================= */
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes barcode-laser {
-    0%,
-    100% {
-        transform: translateY(-38px);
-        opacity: 0.55;
+@media (max-width: 699px) {
+    .matching-top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
     }
 
-    50% {
-        transform: translateY(38px);
-        opacity: 1;
-    }
-}
-
-@keyframes modal-fade-in {
-    from {
-        opacity: 0;
+    .matching-tools {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
     }
 
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes modal-slide-up {
-    from {
-        transform: translateY(18px);
-        opacity: 0;
+    .matching-search {
+        width: auto;
+        grid-column: 1 / -1;
     }
 
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@keyframes modal-scale-in {
-    from {
-        transform: scale(0.98);
-        opacity: 0;
+    .matching-top-bar .matching-finish-btn {
+        width: 100%;
+        min-width: 0;
     }
 
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes toast-in {
-    from {
-        transform: translateY(8px);
-        opacity: 0;
+    .matching-table-card .table-wrap {
+        overflow-x: auto;
     }
 
-    to {
-        transform: translateY(0);
-        opacity: 1;
+    .matching-table {
+        min-width: 700px;
+    }
+
+    .matching-table thead th {
+        padding: 11px 10px;
+    }
+
+    .matching-table tbody td {
+        padding: 12px 10px;
+    }
+
+    .matching-pagination {
+        padding-top: 12px;
+    }
+
+    .matching-page-btn {
+        min-width: 31px;
+        height: 31px;
+    }
+
+    .matching-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 14px;
+    }
+
+    .matching-summary-item:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .matching-summary-value {
+        font-size: 18px;
+    }
+
+    .matching-summary .matching-warning {
+        margin-top: 18px;
+        padding-top: 13px;
     }
 }

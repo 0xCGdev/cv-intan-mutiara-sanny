@@ -305,7 +305,7 @@ function createShipmentFormModal(shipment) {
                     class="shipment-form-grid">
 
                     <div
-                        class="shipment-field shipment-field-wide">
+                        class="shipment-field">
 
                         <label>
                             No. Shipment / DPV
@@ -316,7 +316,7 @@ function createShipmentFormModal(shipment) {
                             class="input"
                             type="text"
                             value="${esc(shipment ? shipment.shipmentId : "")}"
-                            placeholder="Contoh: 607"
+                            placeholder="Contoh: DPV-607"
                             autocomplete="off"
                             ${isEdit ? "readonly" : ""}>
 
@@ -1215,7 +1215,7 @@ async function saveShipment() {
 
         await loadShipments();
 
-        toast(wasEditing ? "Shipment berhasil diperbarui." : "Shipment berhasil dibuat.", "success");
+        toast(wasEditing ? "Shipment berhasil diperbarui." : "Shipment berhasil dibuat.");
     } catch (error) {
         console.error(error);
 
@@ -2101,7 +2101,7 @@ async function executeDeleteShipment(shipmentId, modal) {
 
         await loadShipments();
 
-        toast("Shipment berhasil dihapus.", "success");
+        toast("Shipment berhasil dihapus.");
     } catch (error) {
         console.error(error);
 
