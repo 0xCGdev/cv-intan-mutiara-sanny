@@ -85,10 +85,10 @@ function normalizePackingRow(row) {
 
         operator: String(row?.operator ?? row?.petugas ?? row?.PETUGAS ?? "-").trim(),
 
-        // KHUSUS TIMESTAMP LOG SCAN
+        // Timestamp khusus LOG SCAN
         timestamp: String(row?.timestamp ?? row?.TIMESTAMP ?? row?.lastScan ?? "").trim(),
 
-        // KHUSUS LAST UPDATE TRANSAKSI
+        // Last Update khusus tabel Packing
         lastUpdate: String(row?.lastUpdate ?? row?.LAST_UPDATE ?? "").trim(),
     };
 }
@@ -847,9 +847,8 @@ function renderPackingResult() {
 
         existing.qty += Number(row.qty || 0);
 
-        const currentTime = parseTimestamp(existing.timestamp)?.getTime() || 0;
-
-        const newTime = parseTimestamp(row.timestamp)?.getTime() || 0;
+        const currentTime = parseTimestamp(existing.lastUpdate)?.getTime() || 0;
+        const newTime = parseTimestamp(row.lastUpdate)?.getTime() || 0;
 
         if (newTime >= currentTime) {
             existing.sku = row.sku || existing.sku;
@@ -858,13 +857,13 @@ function renderPackingResult() {
 
             existing.operator = row.operator || existing.operator;
 
-            existing.timestamp = row.timestamp || existing.timestamp;
+            existing.lastUpdate = row.lastUpdate || existing.lastUpdate;
         }
     });
 
     const rows = Array.from(grouped.values());
 
-    rows.sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() || 0) - (parseTimestamp(a.timestamp)?.getTime() || 0));
+    rows.sort((a, b) => (parseTimestamp(b.lastUpdate)?.getTime() || 0) - (parseTimestamp(a.lastUpdate)?.getTime() || 0));
 
     container.innerHTML = `
         <table

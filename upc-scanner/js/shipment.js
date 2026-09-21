@@ -59,6 +59,40 @@ function isAdmin() {
     return String(state.me?.role || "").toUpperCase() === "ADMIN";
 }
 
+/**
+ * Jumlah Packing:
+ * Qty 100 / Case Pack 2 = 50
+ *
+ * Jika tidak habis dibagi:
+ * Qty 101 / Case Pack 2 = 51
+ */
+function calculatePackingQty(qty, casePack) {
+    const qtyNumber = Number(qty);
+    const casePackNumber = Number(casePack);
+
+    if (!Number.isFinite(qtyNumber) || !Number.isFinite(casePackNumber) || qtyNumber <= 0 || casePackNumber <= 0) {
+        return 0;
+    }
+
+    return Math.ceil(qtyNumber / casePackNumber);
+}
+
+function normalizeShipmentItem(item) {
+    const qtyTarget = Number(item?.qtyTarget) || 0;
+    const casePack = Number(item?.casePack) || 0;
+
+    return {
+        sku: String(item?.sku || ""),
+        upc: String(item?.upc || ""),
+        name: String(item?.name || ""),
+        qtyTarget,
+        casePack,
+        packingQty: Number(item?.packingQty) || calculatePackingQty(qtyTarget, casePack),
+        packingMethod: String(item?.packingMethod || ""),
+        minimized: false,
+    };
+}
+
 export async function loadShipment() {
     await loadShipments();
 }
@@ -137,46 +171,43 @@ function renderShipments() {
     box.innerHTML = rows
         .map((shipment) => {
             const id = getShipmentId(shipment);
-
             const status = getStatus(shipment);
-
             const label = getStatusLabel(status);
-
             const statusClass = getStatusClass(status);
 
             return `
-                    <div class="shipment-card">
+                <div class="shipment-card">
 
-                        <div class="shipment-card-main">
+                    <div class="shipment-card-main">
 
-                            <div class="shipment-card-title">
-                                ${esc(id)}
-                            </div>
-
-                            <div class="shipment-card-meta">
-                                ${esc(getDate(shipment))}
-                            </div>
-
+                        <div class="shipment-card-title">
+                            ${esc(id)}
                         </div>
 
-                        <div class="shipment-card-side">
-
-                            <span
-                                class="shipment-status ${statusClass}">
-                                ${esc(label)}
-                            </span>
-
-                            <button
-                                class="btn btn-soft shipment-detail-btn"
-                                type="button"
-                                data-shipment-detail="${esc(id)}">
-                                Lihat Detail
-                            </button>
-
+                        <div class="shipment-card-meta">
+                            ${esc(getDate(shipment))}
                         </div>
 
                     </div>
-                `;
+
+                    <div class="shipment-card-side">
+
+                        <span
+                            class="shipment-status ${statusClass}">
+                            ${esc(label)}
+                        </span>
+
+                        <button
+                            class="btn btn-soft shipment-detail-btn"
+                            type="button"
+                            data-shipment-detail="${esc(id)}">
+                            Lihat Detail
+                        </button>
+
+                    </div>
+
+                </div>
+            `;
         })
         .join("");
 
@@ -218,6 +249,7 @@ function getTodayInputValue() {
 function openShipmentForm() {
     editingShipmentId = "";
     shipmentItems = [];
+
     createShipmentFormModal(null);
 }
 
@@ -266,9 +298,11 @@ function createShipmentFormModal(shipment) {
 
             </div>
 
-            <div class="shipment-modal-body">
+            <div
+                class="shipment-modal-body">
 
-                <div class="shipment-form-grid">
+                <div
+                    class="shipment-form-grid">
 
                     <div
                         class="shipment-field shipment-field-wide">
@@ -282,13 +316,14 @@ function createShipmentFormModal(shipment) {
                             class="input"
                             type="text"
                             value="${esc(shipment ? shipment.shipmentId : "")}"
-                            placeholder="Contoh: IMSNU-607"
+                            placeholder="Contoh: 607"
                             autocomplete="off"
                             ${isEdit ? "readonly" : ""}>
 
                     </div>
 
-                    <div class="shipment-field">
+                    <div
+                        class="shipment-field">
 
                         <label>
                             Tanggal
@@ -301,27 +336,13 @@ function createShipmentFormModal(shipment) {
 
                     </div>
 
-                    <div class="shipment-field">
-
-                        <label>
-                            PO
-                        </label>
-
-                        <input
-                            id="shipmentFormPO"
-                            class="input"
-                            type="text"
-                            value="${esc(shipment?.poTitle || "")}"
-                            placeholder="PO"
-                            autocomplete="off">
-
-                    </div>
-
                 </div>
 
-                <div class="shipment-items-section">
+                <div
+                    class="shipment-items-section">
 
-                    <div class="shipment-items-header">
+                    <div
+                        class="shipment-items-header">
 
                         <div>
 
@@ -346,7 +367,8 @@ function createShipmentFormModal(shipment) {
 
             </div>
 
-            <div class="shipment-modal-footer">
+            <div
+                class="shipment-modal-footer">
 
                 <button
                     class="btn btn-soft"
@@ -392,21 +414,7 @@ function createShipmentFormModal(shipment) {
     $("shipmentSaveBtn")?.addEventListener("click", saveShipment);
 
     if (shipment) {
-        shipmentItems = Array.isArray(shipment.items)
-            ? shipment.items.map((item) => ({
-                  sku: String(item.sku || ""),
-                  upc: String(item.upc || ""),
-                  name: String(item.name || ""),
-                  qtyTarget: Number(item.qtyTarget) || "",
-                  casePack: Number(item.casePack) || "",
-                  packingMethod: String(item.packingMethod || ""),
-                  stockAfter: String(item.stockAfter || ""),
-                  desikan: String(item.desikan || ""),
-                  po: String(item.po || ""),
-                  ket: String(item.ket || ""),
-                  minimized: false,
-              }))
-            : [];
+        shipmentItems = Array.isArray(shipment.items) ? shipment.items.map((item) => normalizeShipmentItem(item)) : [];
 
         if (!shipmentItems.length) {
             addShipmentItem();
@@ -422,9 +430,9 @@ function createShipmentFormModal(shipment) {
     }
 
     if (isEdit) {
-        $("shipmentFormPO")?.focus();
+        modal.querySelector("#shipmentFormPO")?.focus();
     } else {
-        $("shipmentFormId")?.focus();
+        modal.querySelector("#shipmentFormId")?.focus();
     }
 }
 
@@ -444,11 +452,8 @@ function createShipmentItemData() {
         name: "",
         qtyTarget: "",
         casePack: "",
+        packingQty: 0,
         packingMethod: "",
-        stockAfter: "",
-        desikan: "",
-        po: "",
-        ket: "",
         minimized: false,
     };
 }
@@ -484,6 +489,7 @@ function finishCurrentItem(index) {
 
     if (index === shipmentItems.length - 1) {
         addShipmentItem();
+
         return;
     }
 
@@ -625,6 +631,7 @@ function openDeleteItemModal(index, item) {
 
         if (!shipmentItems.length) {
             addShipmentItem();
+
             return;
         }
 
@@ -660,6 +667,10 @@ function addShipmentItemFromData(item, index) {
     row.className = "shipment-form-item" + (item.minimized ? " shipment-form-item-minimized" : "");
 
     row.dataset.index = String(index);
+
+    const calculatedPacking = calculatePackingQty(item.qtyTarget, item.casePack);
+
+    item.packingQty = calculatedPacking;
 
     row.innerHTML = `
         <div
@@ -803,7 +814,7 @@ function addShipmentItemFromData(item, index) {
                             </label>
 
                             <input
-                                class="input"
+                                class="input shipment-qty-input"
                                 type="number"
                                 min="1"
                                 step="1"
@@ -821,13 +832,29 @@ function addShipmentItemFromData(item, index) {
                             </label>
 
                             <input
-                                class="input"
+                                class="input shipment-casepack-input"
                                 type="number"
                                 min="0"
                                 step="1"
                                 data-field="casePack"
                                 value="${esc(item.casePack)}"
                                 placeholder="0">
+
+                        </div>
+
+                        <div
+                            class="shipment-field">
+
+                            <label>
+                                Jumlah Packing
+                            </label>
+
+                            <input
+                                class="input shipment-packingqty-input"
+                                type="number"
+                                value="${esc(calculatedPacking || "")}"
+                                readonly
+                                tabindex="-1">
 
                         </div>
 
@@ -867,69 +894,6 @@ function addShipmentItemFromData(item, index) {
                                 </option>
 
                             </select>
-
-                        </div>
-
-                        <div
-                            class="shipment-field">
-
-                            <label>
-                                Stock Barang Setelah IMSNU
-                            </label>
-
-                            <input
-                                class="input"
-                                type="text"
-                                data-field="stockAfter"
-                                value="${esc(item.stockAfter)}"
-                                placeholder="Stock">
-
-                        </div>
-
-                        <div
-                            class="shipment-field">
-
-                            <label>
-                                Desikan / Superdry
-                            </label>
-
-                            <input
-                                class="input"
-                                type="text"
-                                data-field="desikan"
-                                value="${esc(item.desikan)}"
-                                placeholder="Contoh: 5 gram">
-
-                        </div>
-
-                        <div
-                            class="shipment-field">
-
-                            <label>
-                                PO
-                            </label>
-
-                            <input
-                                class="input"
-                                type="text"
-                                data-field="po"
-                                value="${esc(item.po)}"
-                                placeholder="PO">
-
-                        </div>
-
-                        <div
-                            class="shipment-field shipment-field-wide">
-
-                            <label>
-                                Keterangan
-                            </label>
-
-                            <textarea
-                                class="input shipment-textarea"
-                                data-field="ket"
-                                rows="2"
-                                placeholder="Keterangan">${esc(item.ket)}</textarea>
 
                         </div>
 
@@ -995,12 +959,36 @@ function addShipmentItemFromData(item, index) {
     row.querySelectorAll("[data-field]").forEach((input) => {
         input.addEventListener("input", () => {
             updateShipmentItemField(index, input.dataset.field, input.value);
+
+            updatePackingQtyDisplay(row, index);
         });
 
         input.addEventListener("change", () => {
             updateShipmentItemField(index, input.dataset.field, input.value);
+
+            updatePackingQtyDisplay(row, index);
         });
     });
+}
+
+function updatePackingQtyDisplay(row, index) {
+    if (!shipmentItems[index]) {
+        return;
+    }
+
+    const qty = Number(shipmentItems[index].qtyTarget) || 0;
+
+    const casePack = Number(shipmentItems[index].casePack) || 0;
+
+    const packingQty = calculatePackingQty(qty, casePack);
+
+    shipmentItems[index].packingQty = packingQty;
+
+    const input = row.querySelector(".shipment-packingqty-input");
+
+    if (input) {
+        input.value = packingQty || "";
+    }
 }
 
 function updateShipmentItemField(index, field, value) {
@@ -1009,6 +997,10 @@ function updateShipmentItemField(index, field, value) {
     }
 
     shipmentItems[index][field] = value;
+
+    if (field === "qtyTarget" || field === "casePack") {
+        shipmentItems[index].packingQty = calculatePackingQty(shipmentItems[index].qtyTarget, shipmentItems[index].casePack);
+    }
 }
 
 async function lookupShipmentSKU(index) {
@@ -1028,9 +1020,7 @@ async function lookupShipmentSKU(index) {
 
     if (!sku) {
         shipmentItems[index].sku = "";
-
         shipmentItems[index].upc = "";
-
         shipmentItems[index].name = "";
 
         if (upcInput) {
@@ -1084,7 +1074,6 @@ async function lookupShipmentSKU(index) {
         }
 
         shipmentItems[index].upc = "";
-
         shipmentItems[index].name = "";
 
         toast(error?.message || "SKU tidak ditemukan di Master Data.", "error");
@@ -1094,16 +1083,32 @@ async function lookupShipmentSKU(index) {
 }
 
 async function saveShipment() {
-    const shipmentId = String($("shipmentFormId")?.value || "").trim();
+    const modal = document.getElementById("shipmentModal");
 
-    const date = String($("shipmentFormDate")?.value || "").trim();
+    const shipmentIdInput = modal?.querySelector("#shipmentFormId");
 
-    const poTitle = String($("shipmentFormPO")?.value || "").trim();
+    const dateInput = modal?.querySelector("#shipmentFormDate");
+
+    const poInput = modal?.querySelector("#shipmentFormPO");
+
+    const shipmentId = String(shipmentIdInput?.value || "").trim();
+
+    const date = String(dateInput?.value || "").trim();
+
+    const poTitle = String(poInput?.value || "").trim();
+
+    console.log("SHIPMENT DEBUG:", {
+        modal,
+        shipmentIdInput,
+        shipmentId,
+        date,
+        poTitle,
+    });
 
     if (!shipmentId) {
         toast("No. Shipment wajib diisi.", "error");
 
-        $("shipmentFormId")?.focus();
+        shipmentIdInput?.focus();
 
         return;
     }
@@ -1161,11 +1166,13 @@ async function saveShipment() {
             return;
         }
 
-        if (!Number.isInteger(casePack) || casePack < 0) {
-            toast(`Case Pack pada SKU ${sku} tidak valid.`, "error");
+        if (!Number.isInteger(casePack) || casePack <= 0) {
+            toast(`Case Pack pada SKU ${sku} harus lebih dari 0.`, "error");
 
             return;
         }
+
+        const packingQty = calculatePackingQty(qtyTarget, casePack);
 
         items.push({
             sku,
@@ -1173,11 +1180,8 @@ async function saveShipment() {
             name,
             qtyTarget,
             casePack,
+            packingQty,
             packingMethod: String(item.packingMethod || "").trim(),
-            stockAfter: String(item.stockAfter || "").trim(),
-            desikan: String(item.desikan || "").trim(),
-            po: String(item.po || "").trim(),
-            ket: String(item.ket || "").trim(),
         });
     }
 
@@ -1346,6 +1350,10 @@ function getDetailFieldValue(item, field) {
         return Number(item.casePack) || 0;
     }
 
+    if (field === "packingQty") {
+        return Number(item.packingQty) || calculatePackingQty(item.qtyTarget, item.casePack);
+    }
+
     return String(item[field] ?? "");
 }
 
@@ -1384,7 +1392,7 @@ function renderShipmentDetail(shipment) {
 
     modal.className = "shipment-modal";
 
-    const items = Array.isArray(shipment.items) ? shipment.items : [];
+    const items = Array.isArray(shipment.items) ? shipment.items.map(normalizeShipmentItem) : [];
 
     const status = String(shipment.status || "").toUpperCase();
 
@@ -1440,11 +1448,8 @@ function renderShipmentDetail(shipment) {
                             <th>Nama Barang</th>
                             <th>Qty</th>
                             <th>Case Pack</th>
+                            <th>Jumlah Packing</th>
                             <th>Cara Packing</th>
-                            <th>Stock Barang Setelah IMSNU</th>
-                            <th>Desikan / Superdry</th>
-                            <th>PO</th>
-                            <th>Ket</th>
                         </tr>
 
                     </thead>
@@ -1465,15 +1470,9 @@ function renderShipmentDetail(shipment) {
 
                                           const casePack = getDetailFieldValue(item, "casePack");
 
+                                          const packingQty = getDetailFieldValue(item, "packingQty");
+
                                           const packingMethod = getDetailFieldValue(item, "packingMethod");
-
-                                          const stockAfter = getDetailFieldValue(item, "stockAfter");
-
-                                          const desikan = getDetailFieldValue(item, "desikan");
-
-                                          const po = getDetailFieldValue(item, "po");
-
-                                          const ket = getDetailFieldValue(item, "ket");
 
                                           return `
                                                 <tr>
@@ -1503,32 +1502,22 @@ function renderShipmentDetail(shipment) {
                                                     </td>
 
                                                     <td>
+                                                        <div class="shipment-detail-value">
+                                                            ${esc(packingQty || "-")}
+                                                        </div>
+                                                    </td>
+
+                                                    <td>
                                                         ${renderDetailValue(item, itemIndex, "packingMethod", packingMethod, canManage)}
                                                     </td>
 
-                                                    <td>
-                                                        ${renderDetailValue(item, itemIndex, "stockAfter", stockAfter, canManage)}
-                                                    </td>
-
-                                                    <td>
-                                                        ${renderDetailValue(item, itemIndex, "desikan", desikan, canManage)}
-                                                    </td>
-
-                                                    <td>
-                                                        ${renderDetailValue(item, itemIndex, "po", po, canManage)}
-                                                    </td>
-
-                                                    <td>
-                                                        ${renderDetailValue(item, itemIndex, "ket", ket, canManage)}
-                                                    </td>
-
                                                 </tr>
-                                            `;
+                                              `;
                                       })
                                       .join("")
                                 : `
                                     <tr>
-                                        <td colspan="10">
+                                        <td colspan="7">
                                             Belum ada barang.
                                         </td>
                                     </tr>
@@ -1613,6 +1602,10 @@ function startDetailFieldEdit(modal, shipment, itemIndex, field, area) {
 
     const oldValue = getDetailFieldValue(item, field);
 
+    if (field === "packingQty") {
+        return;
+    }
+
     const inputType = field === "qtyTarget" || field === "casePack" ? "number" : "text";
 
     let inputHTML = "";
@@ -1647,13 +1640,6 @@ function startDetailFieldEdit(modal, shipment, itemIndex, field, area) {
 
             </select>
         `;
-    } else if (field === "ket") {
-        inputHTML = `
-            <textarea
-                class="shipment-detail-edit-input shipment-detail-edit-textarea"
-                data-detail-edit-input
-                rows="2">${esc(oldValue)}</textarea>
-        `;
     } else {
         inputHTML = `
             <input
@@ -1662,7 +1648,7 @@ function startDetailFieldEdit(modal, shipment, itemIndex, field, area) {
                 data-detail-edit-input
                 value="${esc(oldValue)}"
                 ${field === "qtyTarget" ? 'min="1" step="1"' : ""}
-                ${field === "casePack" ? 'min="0" step="1"' : ""}>
+                ${field === "casePack" ? 'min="1" step="1"' : ""}>
         `;
     }
 
@@ -1713,7 +1699,7 @@ function startDetailFieldEdit(modal, shipment, itemIndex, field, area) {
             restoreDetailField(shipment, itemIndex, field, oldValue, area);
         }
 
-        if (event.key === "Enter" && field !== "ket") {
+        if (event.key === "Enter" && field !== "packingMethod") {
             event.preventDefault();
 
             const value = input?.value ?? "";
@@ -1750,6 +1736,10 @@ async function saveDetailField(modal, shipment, itemIndex, field, value, oldValu
         return;
     }
 
+    if (field === "packingQty") {
+        return;
+    }
+
     let newValue = String(value ?? "").trim();
 
     if (field === "qtyTarget" || field === "casePack") {
@@ -1767,8 +1757,8 @@ async function saveDetailField(modal, shipment, itemIndex, field, value, oldValu
             return;
         }
 
-        if (field === "casePack" && numberValue < 0) {
-            toast("Case Pack tidak valid.", "error");
+        if (field === "casePack" && numberValue <= 0) {
+            toast("Case Pack harus lebih dari 0.", "error");
 
             return;
         }
@@ -1792,21 +1782,38 @@ async function saveDetailField(modal, shipment, itemIndex, field, value, oldValu
 
             poTitle: shipment.poTitle || "",
 
-            items: shipment.items.map((item) => ({
-                sku: String(item.sku || ""),
-                upc: String(item.upc || ""),
-                name: String(item.name || ""),
-                qtyTarget: Number(item.qtyTarget) || 0,
-                casePack: Number(item.casePack) || 0,
-                packingMethod: String(item.packingMethod || ""),
-                stockAfter: String(item.stockAfter || ""),
-                desikan: String(item.desikan || ""),
-                po: String(item.po || ""),
-                ket: String(item.ket || ""),
-            })),
+            items: shipment.items.map((item) => {
+                const qtyTarget = Number(item.qtyTarget) || 0;
+
+                const casePack = Number(item.casePack) || 0;
+
+                return {
+                    sku: String(item.sku || ""),
+
+                    upc: String(item.upc || ""),
+
+                    name: String(item.name || ""),
+
+                    qtyTarget,
+
+                    casePack,
+
+                    packingQty: calculatePackingQty(qtyTarget, casePack),
+
+                    packingMethod: String(item.packingMethod || ""),
+                };
+            }),
         };
 
         updatedShipment.items[itemIndex][field] = newValue;
+
+        if (field === "qtyTarget") {
+            updatedShipment.items[itemIndex].packingQty = calculatePackingQty(newValue, updatedShipment.items[itemIndex].casePack);
+        }
+
+        if (field === "casePack") {
+            updatedShipment.items[itemIndex].packingQty = calculatePackingQty(updatedShipment.items[itemIndex].qtyTarget, newValue);
+        }
 
         if (field === "sku") {
             const lookup = await api("lookupSKU", {
@@ -1854,7 +1861,7 @@ async function saveDetailField(modal, shipment, itemIndex, field, value, oldValu
             renderDetailFieldAfterSave(modal, shipment, itemIndex, field);
         }
 
-        if (field === "sku") {
+        if (field === "sku" || field === "qtyTarget" || field === "casePack") {
             refreshDetailRow(modal, shipment, itemIndex);
         }
 
@@ -1911,6 +1918,8 @@ function refreshDetailRow(modal, shipment, itemIndex) {
 
     const nameCell = row.children[2];
 
+    const packingQtyCell = row.children[5];
+
     if (upcCell) {
         upcCell.innerHTML = `
             <div class="shipment-detail-value">
@@ -1923,6 +1932,18 @@ function refreshDetailRow(modal, shipment, itemIndex) {
         nameCell.innerHTML = `
             <div class="shipment-detail-value">
                 ${esc(item.name || "-")}
+            </div>
+        `;
+    }
+
+    if (packingQtyCell) {
+        const packingQty = calculatePackingQty(item.qtyTarget, item.casePack);
+
+        item.packingQty = packingQty;
+
+        packingQtyCell.innerHTML = `
+            <div class="shipment-detail-value">
+                ${esc(packingQty || "-")}
             </div>
         `;
     }
