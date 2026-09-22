@@ -1,8 +1,5 @@
-/* =========================================================
-   MATCHING — UI ONLY
-   ========================================================= */
-
-import { $ } from "./state.js";
+import { $, busy, toast } from "./state.js";
+import { api } from "./api.js";
 
 let matchingReady = false;
 
@@ -12,64 +9,73 @@ let matchingCurrentPage = 1;
 let matchingSearch = "";
 let matchingSort = "default";
 
-const matchingDummyRows = [
-    {
-        sku: "ABC001",
-        upc: "123456789",
-        name: "Kursi Kayu",
-        target: 100,
-        packing: 100,
-        loading: 98,
-    },
-    {
-        sku: "ABC002",
-        upc: "223456780",
-        name: "Meja Lipat Kecil",
-        target: 50,
-        packing: 50,
-        loading: 50,
-    },
-    {
-        sku: "ABC003",
-        upc: "323456781",
-        name: "Rak Buku 3 Susun",
-        target: 40,
-        packing: 38,
-        loading: 38,
-    },
-    {
-        sku: "ABC004",
-        upc: "423456782",
-        name: "Lemari Plastik",
-        target: 25,
-        packing: 25,
-        loading: 25,
-    },
-    {
-        sku: "ABC005",
-        upc: "523456783",
-        name: "Bangku Panjang",
-        target: 60,
-        packing: 60,
-        loading: 60,
-    },
-    {
-        sku: "ABC006",
-        upc: "623456784",
-        name: "Meja Bundar",
-        target: 30,
-        packing: 30,
-        loading: 30,
-    },
-    {
-        sku: "ABC007",
-        upc: "723456785",
-        name: "Rak Sepatu",
-        target: 45,
-        packing: 45,
-        loading: 43,
-    },
-];
+let matchingRows = [];
+let matchingShipments = [];
+let matchingComparison = null;
+let activeMatchingShipmentId = "";
+
+function esc(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function getShipmentId(row) {
+    return String(row?.shipmentId ?? row?.SHIPMENT_ID ?? row?.id ?? "").trim();
+}
+
+function getShipmentName(row) {
+    const id = getShipmentId(row);
+
+    return String(row?.shipmentId ?? row?.name ?? row?.nama ?? row?.dpv ?? row?.DPV ?? id).trim();
+}
+
+function normalizeMatchingRow(row) {
+    return {
+        upc: String(row?.upc ?? row?.UPC ?? "").trim(),
+
+        sku: String(row?.sku ?? row?.SKU ?? "-").trim(),
+
+        name: String(row?.name ?? row?.NAMA_BARANG ?? "-").trim(),
+
+        target: Number(row?.target ?? row?.TARGET_QTY ?? 0),
+
+        packing: Number(row?.packed ?? row?.packing ?? row?.PACKING_QTY ?? 0),
+
+        loading: Number(row?.loaded ?? row?.loading ?? row?.LOADING_QTY ?? 0),
+
+        difference: Number(row?.difference ?? row?.selisih ?? row?.SELISIH ?? 0),
+
+        status: String(row?.status ?? row?.STATUS ?? "").trim(),
+    };
+}
+
+function getShipmentRows(response) {
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+    if (Array.isArray(response?.rows)) {
+        return response.rows;
+    }
+
+    if (Array.isArray(response?.shipments)) {
+        return response.shipments;
+    }
+
+    if (Array.isArray(response?.data?.rows)) {
+        return response.data.rows;
+    }
+
+    if (Array.isArray(response?.data?.shipments)) {
+        return response.data.shipments;
+    }
+
+    return [];
+}
 
 function prepareMatchingLayout() {
     const page = $("page-matching");
@@ -80,31 +86,24 @@ function prepareMatchingLayout() {
 
     page.innerHTML = `
         <div class="page-head">
-
-            <h2>
-                Matching
-            </h2>
-
+            <h2>Matching</h2>
             <p>
-                Periksa kesesuaian DPV, Packing, dan Loading.
+                Bandingkan hasil Packing dengan Loading.
             </p>
-
         </div>
 
         <section class="matching-top-bar">
 
             <div class="matching-shipment-selector">
-
                 <select
                     id="matchingShipmentSelect"
                     class="input">
 
-                    <option value="607">
-                        Shipment 607
+                    <option value="">
+                        Pilih DPV
                     </option>
 
                 </select>
-
             </div>
 
             <div class="matching-tools">
@@ -135,8 +134,7 @@ function prepareMatchingLayout() {
                         stroke="currentColor"
                         stroke-width="2"
                         stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true">
+                        stroke-linejoin="round">
 
                         <path d="M8 6h13"></path>
                         <path d="M8 12h10"></path>
@@ -147,16 +145,6 @@ function prepareMatchingLayout() {
                         <path d="M3 18h.01"></path>
 
                     </svg>
-
-                </button>
-
-                <button
-                    id="finishMatchingBtn"
-                    class="btn btn-primary matching-finish-btn"
-                    type="button"
-                    disabled>
-
-                    Selesaikan Matching
 
                 </button>
 
@@ -171,7 +159,6 @@ function prepareMatchingLayout() {
                 <table class="matching-table">
 
                     <thead>
-
                         <tr>
 
                             <th>
@@ -183,7 +170,7 @@ function prepareMatchingLayout() {
                             </th>
 
                             <th>
-                                Qty Target
+                                Target
                             </th>
 
                             <th>
@@ -199,11 +186,9 @@ function prepareMatchingLayout() {
                             </th>
 
                         </tr>
-
                     </thead>
 
-                    <tbody>
-                    </tbody>
+                    <tbody></tbody>
 
                 </table>
 
@@ -211,7 +196,7 @@ function prepareMatchingLayout() {
 
             <div
                 id="matchingPagination"
-                class="matching-pagination hidden">
+                class="pagination hidden">
             </div>
 
         </section>
@@ -219,7 +204,7 @@ function prepareMatchingLayout() {
         <section class="panel matching-summary">
 
             <div class="matching-summary-title">
-                Ringkasan Shipment
+                Ringkasan DPV
             </div>
 
             <div class="matching-summary-grid">
@@ -233,9 +218,7 @@ function prepareMatchingLayout() {
                     <div
                         id="matchingTotalItem"
                         class="matching-summary-value">
-
                         0
-
                     </div>
 
                 </div>
@@ -249,9 +232,7 @@ function prepareMatchingLayout() {
                     <div
                         id="matchingTotalTarget"
                         class="matching-summary-value">
-
                         0
-
                     </div>
 
                 </div>
@@ -265,9 +246,7 @@ function prepareMatchingLayout() {
                     <div
                         id="matchingTotalPacking"
                         class="matching-summary-value">
-
                         0
-
                     </div>
 
                 </div>
@@ -281,9 +260,7 @@ function prepareMatchingLayout() {
                     <div
                         id="matchingTotalLoading"
                         class="matching-summary-value">
-
                         0
-
                     </div>
 
                 </div>
@@ -291,15 +268,13 @@ function prepareMatchingLayout() {
                 <div class="matching-summary-item">
 
                     <div class="matching-summary-label">
-                        Total Selisih
+                        Selisih Packing / Loading
                     </div>
 
                     <div
                         id="matchingTotalDifference"
-                        class="matching-summary-value matching-total-error">
-
+                        class="matching-summary-value">
                         0
-
                     </div>
 
                 </div>
@@ -308,7 +283,7 @@ function prepareMatchingLayout() {
 
             <div
                 id="matchingWarning"
-                class="matching-warning">
+                class="matching-warning hidden">
 
                 <span class="matching-warning-icon">
                     !
@@ -316,8 +291,7 @@ function prepareMatchingLayout() {
 
                 <span>
                     Masih ada barang yang belum sesuai.
-                    Periksa kembali proses Packing atau Loading
-                    sebelum menyelesaikan Matching.
+                    Periksa kembali proses Packing atau Loading.
                 </span>
 
             </div>
@@ -325,10 +299,38 @@ function prepareMatchingLayout() {
         </section>
     `;
 
-    page.addEventListener("click", handleMatchingClick);
+    const select = $("matchingShipmentSelect");
+
+    select?.addEventListener("change", async (event) => {
+        const shipmentId = String(event.target.value || "").trim();
+
+        activeMatchingShipmentId = shipmentId;
+
+        matchingCurrentPage = 1;
+        matchingSearch = "";
+        matchingSort = "default";
+
+        const searchInput = $("matchingSearchInput");
+
+        if (searchInput) {
+            searchInput.value = "";
+        }
+
+        if (!shipmentId) {
+            matchingRows = [];
+            matchingComparison = null;
+
+            renderMatchingTable();
+            renderMatchingSummary();
+
+            return;
+        }
+
+        await loadMatchingData(shipmentId);
+    });
 
     $("matchingSearchInput")?.addEventListener("input", (event) => {
-        matchingSearch = event.target.value;
+        matchingSearch = event.target.value || "";
 
         matchingCurrentPage = 1;
 
@@ -347,39 +349,184 @@ function prepareMatchingLayout() {
         renderMatchingTable();
     });
 
+    page.addEventListener("click", handleMatchingClick);
+
     matchingReady = true;
 
     renderMatchingTable();
     renderMatchingSummary();
 }
 
+async function loadMatchingShipments() {
+    const select = $("matchingShipmentSelect");
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML = `
+        <option value="">
+            Memuat DPV...
+        </option>
+    `;
+
+    try {
+        const response = await api("getShipments", {});
+
+        if (!response?.success) {
+            throw new Error(response?.message || "Gagal memuat DPV.");
+        }
+
+        matchingShipments = getShipmentRows(response);
+
+        /*
+         * PENTING:
+         * Jangan filter berdasarkan status.
+         *
+         * getShipments() dari Code.gs
+         * mengembalikan semua DPV.
+         *
+         * Jadi DPV PENDING juga harus
+         * tetap muncul di Matching.
+         */
+
+        const validRows = matchingShipments.filter((row) => getShipmentId(row));
+
+        select.innerHTML = `
+            <option value="">
+                Pilih DPV
+            </option>
+
+            ${
+                validRows.length
+                    ? validRows
+                          .map((row) => {
+                              const id = getShipmentId(row);
+
+                              const name = getShipmentName(row);
+
+                              return `
+                                <option
+                                    value="${esc(id)}">
+
+                                    ${esc(name)}
+
+                                </option>
+                            `;
+                          })
+                          .join("")
+                    : ""
+            }
+        `;
+
+        if (!validRows.length) {
+            select.innerHTML = `
+                <option value="">
+                    Tidak ada DPV
+                </option>
+            `;
+        }
+
+        if (activeMatchingShipmentId && validRows.some((row) => getShipmentId(row) === activeMatchingShipmentId)) {
+            select.value = activeMatchingShipmentId;
+        }
+    } catch (error) {
+        console.error("Load Matching DPV error:", error);
+
+        matchingShipments = [];
+
+        select.innerHTML = `
+            <option value="">
+                Gagal memuat DPV
+            </option>
+        `;
+
+        toast(error?.message || "Gagal memuat DPV.", true);
+    }
+}
+
+async function loadMatchingData(shipmentId) {
+    if (!shipmentId) {
+        matchingRows = [];
+        matchingComparison = null;
+
+        renderMatchingTable();
+        renderMatchingSummary();
+
+        return;
+    }
+
+    busy(true);
+
+    try {
+        const response = await api("getMatching", {
+            shipmentId: shipmentId,
+        });
+
+        if (!response?.success) {
+            throw new Error(response?.message || "Gagal memuat data Matching.");
+        }
+
+        /*
+         * Struktur Code.gs:
+         *
+         * {
+         *   success: true,
+         *   ready: ...,
+         *   comparison: {
+         *      totalItems,
+         *      totalTarget,
+         *      totalPacked,
+         *      totalLoaded,
+         *      items: [...]
+         *   }
+         * }
+         */
+
+        matchingComparison = response.comparison || null;
+
+        const items = matchingComparison?.items;
+
+        matchingRows = Array.isArray(items) ? items.map(normalizeMatchingRow) : [];
+
+        matchingCurrentPage = 1;
+
+        renderMatchingTable();
+        renderMatchingSummary();
+    } catch (error) {
+        console.error("Load Matching error:", error);
+
+        matchingRows = [];
+        matchingComparison = null;
+
+        renderMatchingTable();
+        renderMatchingSummary();
+
+        toast(error?.message || "Gagal memuat data Matching.", true);
+    } finally {
+        busy(false);
+    }
+}
+
 function getFilteredMatchingRows() {
-    let rows = [...matchingDummyRows];
+    let rows = [...matchingRows];
 
     const search = matchingSearch.trim().toLowerCase();
 
     if (search) {
-        rows = rows.filter((item) => {
-            return String(item.sku).toLowerCase().includes(search) || String(item.upc).toLowerCase().includes(search) || String(item.name).toLowerCase().includes(search);
-        });
+        rows = rows.filter((item) => String(item.sku).toLowerCase().includes(search) || String(item.upc).toLowerCase().includes(search) || String(item.name).toLowerCase().includes(search));
     }
 
     if (matchingSort === "name") {
-        rows.sort((a, b) => a.name.localeCompare(b.name, "id"));
+        rows.sort((a, b) => String(a.name).localeCompare(String(b.name), "id"));
     }
 
     if (matchingSort === "sku") {
-        rows.sort((a, b) => a.sku.localeCompare(b.sku, "id"));
+        rows.sort((a, b) => String(a.sku).localeCompare(String(b.sku), "id"));
     }
 
     if (matchingSort === "difference") {
-        rows.sort((a, b) => {
-            const diffA = Number(a.loading) - Number(a.target);
-
-            const diffB = Number(b.loading) - Number(b.target);
-
-            return diffA - diffB;
-        });
+        rows.sort((a, b) => Number(a.difference) - Number(b.difference));
     }
 
     return rows;
@@ -404,10 +551,9 @@ function renderMatchingTable() {
 
     const pageRows = filteredRows.slice(startIndex, startIndex + MATCHING_ROWS_PER_PAGE);
 
-    if (!pageRows.length) {
+    if (!activeMatchingShipmentId) {
         tbody.innerHTML = `
             <tr>
-
                 <td
                     colspan="6"
                     style="
@@ -416,74 +562,104 @@ function renderMatchingTable() {
                         color:var(--text-muted);
                     ">
 
-                    Data tidak ditemukan.
+                    Pilih DPV terlebih dahulu.
 
                 </td>
-
             </tr>
         `;
-    } else {
-        tbody.innerHTML = pageRows
-            .map((item) => {
-                const difference = Number(item.loading) - Number(item.target);
 
-                const mismatch = difference !== 0;
+        renderMatchingPagination(0);
 
-                return `
-                        <tr
-                            class="matching-row ${mismatch ? "mismatch" : ""}">
-
-                            <td>
-
-                                <div class="matching-sku">
-
-                                    <span
-                                        class="matching-status-dot">
-                                    </span>
-
-                                    ${item.sku}
-
-                                </div>
-
-                                <div class="matching-upc">
-                                    ${item.upc}
-                                </div>
-
-                            </td>
-
-                            <td>
-                                <strong>
-                                    ${item.name}
-                                </strong>
-                            </td>
-
-                            <td>
-                                ${item.target}
-                            </td>
-
-                            <td>
-                                ${item.packing}
-                            </td>
-
-                            <td>
-                                ${item.loading}
-                            </td>
-
-                            <td
-                                class="
-                                    matching-difference
-                                    ${difference === 0 ? "matching-ok" : ""}
-                                ">
-
-                                ${difference}
-
-                            </td>
-
-                        </tr>
-                    `;
-            })
-            .join("");
+        return;
     }
+
+    if (!pageRows.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td
+                    colspan="6"
+                    style="
+                        text-align:center;
+                        padding:30px;
+                        color:var(--text-muted);
+                    ">
+
+                    Tidak ada data Matching.
+
+                </td>
+            </tr>
+        `;
+
+        renderMatchingPagination(0);
+
+        return;
+    }
+
+    tbody.innerHTML = pageRows
+        .map((item) => {
+            const difference = Number(item.difference);
+
+            const mismatch = difference !== 0;
+
+            return `
+                    <tr
+                        class="
+                            matching-row
+                            ${mismatch ? "mismatch" : ""}
+                        ">
+
+                        <td>
+
+                            <div class="matching-sku">
+
+                                <span
+                                    class="matching-status-dot">
+                                </span>
+
+                                ${esc(item.sku)}
+
+                            </div>
+
+                            <div class="matching-upc">
+
+                                ${esc(item.upc || "-")}
+
+                            </div>
+
+                        </td>
+
+                        <td>
+                            <strong>
+                                ${esc(item.name)}
+                            </strong>
+                        </td>
+
+                        <td>
+                            ${Number(item.target || 0)}
+                        </td>
+
+                        <td>
+                            ${Number(item.packing || 0)}
+                        </td>
+
+                        <td>
+                            ${Number(item.loading || 0)}
+                        </td>
+
+                        <td
+                            class="
+                                matching-difference
+                                ${difference === 0 ? "matching-ok" : ""}
+                            ">
+
+                            ${difference}
+
+                        </td>
+
+                    </tr>
+                `;
+        })
+        .join("");
 
     renderMatchingPagination(totalPages);
 }
@@ -497,7 +673,6 @@ function renderMatchingPagination(totalPages) {
 
     if (totalPages <= 1) {
         pagination.innerHTML = "";
-
         pagination.classList.add("hidden");
 
         return;
@@ -505,103 +680,158 @@ function renderMatchingPagination(totalPages) {
 
     pagination.classList.remove("hidden");
 
-    let html = `
-        <button
-            type="button"
-            class="matching-page-btn"
-            data-page="${matchingCurrentPage - 1}"
-            ${matchingCurrentPage === 1 ? "disabled" : ""}>
+    const pages = getMatchingPaginationPages(matchingCurrentPage, totalPages);
 
-            ‹
+    pagination.innerHTML = `
+        <div class="pagination-controls">
 
-        </button>
-    `;
-
-    for (let page = 1; page <= totalPages; page++) {
-        html += `
             <button
                 type="button"
-                class="
-                    matching-page-btn
-                    ${page === matchingCurrentPage ? "active" : ""}
-                "
-                data-page="${page}">
+                class="pagination-btn"
+                data-page="${matchingCurrentPage - 1}"
+                ${matchingCurrentPage === 1 ? "disabled" : ""}
+                aria-label="Halaman sebelumnya">
 
-                ${page}
+                ‹
 
             </button>
-        `;
+
+            ${pages
+                .map((page) => {
+                    if (page === "...") {
+                        return `
+                                <span
+                                    class="pagination-dots">
+                                    …
+                                </span>
+                            `;
+                    }
+
+                    return `
+                            <button
+                                type="button"
+                                class="
+                                    pagination-btn
+                                    ${page === matchingCurrentPage ? "active" : ""}
+                                "
+                                data-page="${page}">
+
+                                ${page}
+
+                            </button>
+                        `;
+                })
+                .join("")}
+
+            <button
+                type="button"
+                class="pagination-btn"
+                data-page="${matchingCurrentPage + 1}"
+                ${matchingCurrentPage === totalPages ? "disabled" : ""}
+                aria-label="Halaman berikutnya">
+
+                ›
+
+            </button>
+
+        </div>
+    `;
+}
+
+function getMatchingPaginationPages(currentPage, totalPages) {
+    if (totalPages <= 5) {
+        return Array.from(
+            {
+                length: totalPages,
+            },
+            (_, index) => index + 1,
+        );
     }
 
-    html += `
-        <button
-            type="button"
-            class="matching-page-btn"
-            data-page="${matchingCurrentPage + 1}"
-            ${matchingCurrentPage === totalPages ? "disabled" : ""}>
+    if (currentPage <= 3) {
+        return [1, 2, 3, "...", totalPages];
+    }
 
-            ›
+    if (currentPage >= totalPages - 2) {
+        return [1, "...", totalPages - 2, totalPages - 1, totalPages];
+    }
 
-        </button>
-    `;
-
-    pagination.innerHTML = html;
+    return [1, "...", currentPage, "...", totalPages];
 }
 
 function renderMatchingSummary() {
-    const totalItem = matchingDummyRows.length;
+    const comparison = matchingComparison;
 
-    const totalTarget = matchingDummyRows.reduce((sum, item) => sum + Number(item.target || 0), 0);
+    const totalItem = Number(comparison?.totalItems ?? matchingRows.length ?? 0);
 
-    const totalPacking = matchingDummyRows.reduce((sum, item) => sum + Number(item.packing || 0), 0);
+    const totalTarget = Number(comparison?.totalTarget ?? 0);
 
-    const totalLoading = matchingDummyRows.reduce((sum, item) => sum + Number(item.loading || 0), 0);
+    const totalPacking = Number(comparison?.totalPacked ?? 0);
 
-    const totalDifference = totalLoading - totalTarget;
+    const totalLoading = Number(comparison?.totalLoaded ?? 0);
 
-    $("matchingTotalItem").textContent = totalItem;
+    const totalDifference = totalLoading - totalPacking;
 
-    $("matchingTotalTarget").textContent = totalTarget;
+    const mismatchCount = matchingRows.filter((item) => Number(item.difference || 0) !== 0).length;
 
-    $("matchingTotalPacking").textContent = totalPacking;
+    const totalItemElement = $("matchingTotalItem");
 
-    $("matchingTotalLoading").textContent = totalLoading;
+    const totalTargetElement = $("matchingTotalTarget");
 
-    $("matchingTotalDifference").textContent = totalDifference;
+    const totalPackingElement = $("matchingTotalPacking");
 
-    const mismatchCount = matchingDummyRows.filter((item) => Number(item.loading) !== Number(item.target)).length;
+    const totalLoadingElement = $("matchingTotalLoading");
+
+    const totalDifferenceElement = $("matchingTotalDifference");
+
+    if (totalItemElement) {
+        totalItemElement.textContent = totalItem;
+    }
+
+    if (totalTargetElement) {
+        totalTargetElement.textContent = totalTarget;
+    }
+
+    if (totalPackingElement) {
+        totalPackingElement.textContent = totalPacking;
+    }
+
+    if (totalLoadingElement) {
+        totalLoadingElement.textContent = totalLoading;
+    }
+
+    if (totalDifferenceElement) {
+        totalDifferenceElement.textContent = totalDifference;
+    }
 
     const warning = $("matchingWarning");
 
-    if (warning) {
-        if (mismatchCount === 0) {
-            warning.classList.add("hidden");
-        } else {
-            warning.classList.remove("hidden");
-
-            warning.innerHTML = `
-                <span class="matching-warning-icon">
-                    !
-                </span>
-
-                <span>
-                    Masih ada
-                    ${mismatchCount}
-                    barang yang belum sesuai.
-                    Periksa kembali proses
-                    Packing atau Loading
-                    sebelum menyelesaikan
-                    Matching.
-                </span>
-            `;
-        }
+    if (!warning) {
+        return;
     }
 
-    const finishButton = $("finishMatchingBtn");
+    if (!activeMatchingShipmentId || !matchingComparison || mismatchCount === 0) {
+        warning.classList.add("hidden");
 
-    if (finishButton) {
-        finishButton.disabled = mismatchCount !== 0;
+        return;
     }
+
+    warning.classList.remove("hidden");
+
+    warning.innerHTML = `
+        <span
+            class="matching-warning-icon">
+            !
+        </span>
+
+        <span>
+            Masih ada
+            ${mismatchCount}
+            barang yang belum sesuai.
+            Periksa kembali proses
+            Packing atau Loading.
+        </span>
+    `;
 }
 
 function handleMatchingClick(event) {
@@ -628,4 +858,16 @@ export function bindMatching() {
 
 export async function loadMatching() {
     prepareMatchingLayout();
+
+    await loadMatchingShipments();
+
+    if (activeMatchingShipmentId) {
+        await loadMatchingData(activeMatchingShipmentId);
+    } else {
+        matchingRows = [];
+        matchingComparison = null;
+
+        renderMatchingTable();
+        renderMatchingSummary();
+    }
 }

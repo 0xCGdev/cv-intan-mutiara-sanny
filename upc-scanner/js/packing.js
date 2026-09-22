@@ -33,6 +33,12 @@ function getStatus(row) {
         .toUpperCase();
 }
 
+function isPackingStatus(row) {
+    const status = getStatus(row);
+
+    return status === "PENDING" || status === "PACKING";
+}
+
 function getTodayKey() {
     const now = new Date();
 
@@ -63,6 +69,22 @@ function getShipmentItems(shipment) {
     const items = shipment?.items ?? shipment?.ITEMS ?? [];
 
     return Array.isArray(items) ? items : [];
+}
+
+function normalizeUPC(value) {
+    let upc = String(value ?? "").trim();
+
+    if (!upc) {
+        return "";
+    }
+
+    upc = upc.replace(/\D/g, "");
+
+    if (upc.length === 11) {
+        upc = "0" + upc;
+    }
+
+    return upc;
 }
 
 function getPackingRows(response) {
@@ -268,7 +290,7 @@ function renderActiveShipmentButton() {
         return;
     }
 
-    button.textContent = activeShipmentId ? `DPV ${activeShipmentId}` : "Pilih DPV";
+    button.textContent = activeShipmentId ? activeShipmentId : "Pilih DPV";
 }
 
 function preparePackingLayout() {
@@ -513,7 +535,7 @@ function showShipmentSelectModal() {
     stopPackingCamera();
 
     const availableShipments = (Array.isArray(shipments) ? shipments : [])
-        .filter((shipment) => getStatus(shipment) !== "SELESAI")
+        .filter((shipment) => isPackingStatus(shipment))
         .map((shipment) => getShipmentId(shipment))
         .filter(Boolean);
 
@@ -523,59 +545,96 @@ function showShipmentSelectModal() {
         return;
     }
 
+    let selectedDpvId = activeShipmentId || "";
+
     content.innerHTML = `
-        <div class="modal-head">
+        <div class="shipment-modal-dialog dpv-selector-dialog">
 
-            <h3>
-                Pilih DPV
-            </h3>
+            <div class="shipment-modal-header">
 
-            <button
-                class="close"
-                data-action="close-modal"
-                aria-label="Tutup"
-                type="button">
+                <div>
 
-                ×
-
-            </button>
-
-        </div>
-
-        <div class="packing-shipment-modal">
-
-            <div class="packing-field">
-
-                <label
-                    for="packingShipmentModalSelect">
-
-                    DPV
-
-                </label>
-
-                <select
-                    id="packingShipmentModalSelect"
-                    class="input">
-
-                    <option value="">
+                    <h3>
                         Pilih DPV
-                    </option>
+                    </h3>
 
-                    ${availableShipments
-                        .map(
-                            (id) => `
-                                <option
-                                    value="${esc(id)}"
-                                    ${id === activeShipmentId ? "selected" : ""}>
+                    <p>
+                        Pilih DPV yang akan digunakan untuk Packing.
+                    </p>
 
-                                    ${esc(id)}
+                </div>
 
-                                </option>
-                            `,
-                        )
-                        .join("")}
+                <button
+                    type="button"
+                    class="shipment-modal-close"
+                    data-packing-dpv-close
+                    aria-label="Tutup">
 
-                </select>
+                    ×
+
+                </button>
+
+            </div>
+
+            <div class="shipment-modal-body">
+
+                <div class="shipment-field">
+
+                    <label
+                        for="packingShipmentModalSelect">
+
+                        DPV
+
+                    </label>
+
+                    <select
+                        id="packingShipmentModalSelect"
+                        class="input dpv-select">
+
+                        <option value="">
+                            Pilih DPV
+                        </option>
+
+                        ${availableShipments
+                            .map(
+                                (id) => `
+                                    <option
+                                        value="${esc(id)}"
+                                        ${id === selectedDpvId ? "selected" : ""}>
+
+                                        ${esc(id)}
+
+                                    </option>
+                                `,
+                            )
+                            .join("")}
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="shipment-modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-soft"
+                    data-packing-dpv-close>
+
+                    Batal
+
+                </button>
+
+                <button
+                    id="packingDpvNextBtn"
+                    type="button"
+                    class="btn btn-primary"
+                    ${selectedDpvId ? "" : "disabled"}>
+
+                    Lanjut
+
+                </button>
 
             </div>
 
@@ -586,14 +645,32 @@ function showShipmentSelectModal() {
 
     const select = $("packingShipmentModalSelect");
 
-    select?.addEventListener("change", async (event) => {
-        const shipmentId = String(event.target.value || "").trim();
+    const nextButton = $("packingDpvNextBtn");
 
-        if (!shipmentId) {
+    const closeButton = () => {
+        closePackingModal();
+    };
+
+    modal.querySelectorAll("[data-packing-dpv-close]").forEach((button) => {
+        button.addEventListener("click", closeButton);
+    });
+
+    select?.addEventListener("change", (event) => {
+        selectedDpvId = String(event.target.value || "").trim();
+
+        if (nextButton) {
+            nextButton.disabled = !selectedDpvId;
+        }
+    });
+
+    nextButton?.addEventListener("click", async () => {
+        if (!selectedDpvId) {
+            toast("Pilih DPV terlebih dahulu.", true);
+
             return;
         }
 
-        await selectShipment(shipmentId);
+        await selectShipment(selectedDpvId);
     });
 
     requestAnimationFrame(() => {
@@ -865,7 +942,7 @@ function renderPackingResult() {
     }
 
     if (title) {
-        title.textContent = `Hasil scan packing DPV ${activeShipmentId}`;
+        title.textContent = `Hasil scan packing ${activeShipmentId}`;
     }
 
     if (subtitle) {
@@ -1013,7 +1090,7 @@ function renderPackingPage() {
 
     const status = getStatus(activeShipment);
 
-    const canScan = !!activeShipmentId && status === "PACKING";
+    const canScan = !!activeShipmentId && isPackingStatus(activeShipment);
 
     if (cameraBtn) {
         cameraBtn.disabled = !canScan;
@@ -1060,7 +1137,7 @@ async function loadShipments() {
 
 async function loadTodayHistory() {
     try {
-        const response = await api("getTodayRowsForUser");
+        const response = await api("getTodayPackingRowsForUser");
 
         if (!response?.success) {
             console.warn("Gagal mengambil riwayat scan:", response?.message);
@@ -1142,7 +1219,7 @@ async function restoreActiveShipment() {
 
         const shipment = response.shipment || response.data?.shipment || null;
 
-        if (!shipment || getStatus(shipment) !== "PACKING") {
+        if (!shipment || !isPackingStatus(shipment)) {
             clearActiveShipment();
 
             activeShipmentId = "";
@@ -1234,7 +1311,7 @@ async function selectShipment(shipmentId) {
             throw new Error("Data DPV tidak valid.");
         }
 
-        if (getStatus(shipment) !== "PACKING") {
+        if (!isPackingStatus(shipment)) {
             throw new Error("DPV ini tidak sedang dalam proses Packing.");
         }
 
@@ -1267,21 +1344,43 @@ async function selectShipment(shipmentId) {
 }
 
 async function lookupUPC(upc) {
-    const value = String(upc || "").trim();
+    const value = normalizeUPC(upc);
 
     if (!value) {
-        return null;
+        throw new Error("UPC kosong.");
     }
 
-    const response = await api("lookupUPC", {
-        upc: value,
+    if (!activeShipmentId || !activeShipment) {
+        throw new Error("Pilih DPV terlebih dahulu.");
+    }
+
+    const items = getShipmentItems(activeShipment);
+
+    if (!items.length) {
+        throw new Error(`DPV ${activeShipmentId} belum memiliki data barang.`);
+    }
+
+    const item = items.find((row) => {
+        const rowUPC = normalizeUPC(row?.upc ?? row?.UPC ?? "");
+
+        if (!rowUPC) {
+            return false;
+        }
+
+        return rowUPC === value;
     });
 
-    if (!response?.success) {
-        throw new Error(response?.message || "UPC tidak ditemukan.");
+    if (!item) {
+        throw new Error(`UPC ${value} tidak terdaftar pada DPV ${activeShipmentId}.`);
     }
 
-    return response.item || response.data?.item || null;
+    return {
+        upc: normalizeUPC(item?.upc ?? item?.UPC ?? value),
+
+        sku: String(item?.sku ?? item?.SKU ?? "-").trim(),
+
+        name: String(item?.name ?? item?.NAMA_BARANG ?? "-").trim(),
+    };
 }
 
 async function processScan(upc) {
@@ -1291,7 +1390,7 @@ async function processScan(upc) {
         return;
     }
 
-    if (!activeShipmentId) {
+    if (!activeShipmentId || !activeShipment) {
         toast("Pilih DPV terlebih dahulu.", true);
 
         focusPackingInput();
@@ -1299,13 +1398,23 @@ async function processScan(upc) {
         return;
     }
 
-    if (getStatus(activeShipment) !== "PACKING") {
+    if (!isPackingStatus(activeShipment)) {
         toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
     }
 
-    if (!/^\d+$/.test(value)) {
+    const normalizedUPC = normalizeUPC(value);
+
+    if (!normalizedUPC) {
+        toast("UPC tidak valid.", true);
+
+        focusPackingInput();
+
+        return;
+    }
+
+    if (!/^\d+$/.test(normalizedUPC)) {
         toast("UPC harus berupa angka.", true);
 
         focusPackingInput();
@@ -1322,10 +1431,10 @@ async function processScan(upc) {
     try {
         busy(true);
 
-        const item = await lookupUPC(value);
+        const item = await lookupUPC(normalizedUPC);
 
         if (!item) {
-            throw new Error("UPC tidak ditemukan.");
+            throw new Error(`UPC ${normalizedUPC} tidak terdaftar pada DPV ${activeShipmentId}.`);
         }
 
         showPackingConfirmModal(item);
@@ -1590,7 +1699,7 @@ async function finishPacking() {
         return;
     }
 
-    if (getStatus(activeShipment) !== "PACKING") {
+    if (!isPackingStatus(activeShipment)) {
         toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
@@ -1845,7 +1954,7 @@ async function openPackingCamera() {
         return;
     }
 
-    if (getStatus(activeShipment) !== "PACKING") {
+    if (!isPackingStatus(activeShipment)) {
         toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
