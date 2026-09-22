@@ -4,6 +4,8 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#155c3b" />
+        <meta name="description" content="CV Intan Mutiara Sanny - UPC Scanner" />
+
         <title>CV IMS - UPC Scanner</title>
 
         <link rel="stylesheet" href="css/style.css" />
@@ -12,12 +14,11 @@
     </head>
 
     <body>
-        <!-- LOGIN -->
         <section id="loginView" class="login">
             <div class="login-card">
                 <div class="brand">
                     <div class="logo">
-                        <img src="assets/Images/logo/logo.png" alt="logo cv intan mutiara sanny" />
+                        <img src="assets/Images/logo/logo.png" alt="Logo CV Intan Mutiara Sanny" />
                     </div>
 
                     <div>
@@ -26,27 +27,25 @@
                     </div>
                 </div>
 
-                <label for="loginUser"> Username </label>
+                <label for="loginUser">Username</label>
 
-                <input id="loginUser" class="input" autocomplete="username" placeholder="Masukkan username" />
+                <input id="loginUser" class="input" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Masukkan username" />
 
-                <label for="loginPass"> Password </label>
+                <label for="loginPass">Password</label>
 
                 <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="Masukkan password" />
 
                 <button id="loginBtn" class="btn btn-primary full" type="button">Masuk</button>
 
-                <div id="loginError" class="error-box hidden"></div>
+                <div id="loginError" class="error-box hidden" role="alert"></div>
             </div>
         </section>
 
-        <!-- APPLICATION -->
         <section id="appView" class="app hidden">
-            <!-- TOPBAR -->
             <header class="topbar">
                 <div class="top-left">
                     <div class="logo">
-                        <img src="assets/Images/logo/logo.png" alt="logo cv intan mutiara sanny" />
+                        <img src="assets/Images/logo/logo.png" alt="Logo CV Intan Mutiara Sanny" />
                     </div>
 
                     <div>
@@ -59,9 +58,9 @@
                 <div class="top-actions">
                     <button id="notificationBtn" class="notification-btn" type="button" aria-label="Notifikasi">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
 
-                            <path d="M10 21h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M10 21h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                         </svg>
 
                         <span id="notificationBadge" class="notification-badge hidden"> 0 </span>
@@ -74,118 +73,107 @@
             <div id="menuOverlay" class="menu-overlay"></div>
 
             <div class="layout">
-                <!-- SIDEBAR -->
                 <aside id="sidebar" class="sidebar">
                     <div class="sidebar-content">
                         <nav class="nav">
-                            <!-- DASHBOARD -->
-                            <button data-page="scan">
+                            <button type="button" data-page="scan">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"></rect>
 
-                                        <rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"></rect>
 
-                                        <rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"></rect>
 
-                                        <rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"></rect>
                                     </svg>
                                 </span>
 
-                                <span> Dashboard </span>
+                                <span>Dashboard</span>
                             </button>
 
-                            <!-- DPV -->
-                            <button data-page="shipments">
+                            <button type="button" data-page="shipments">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M3 6h18v12H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
 
-                                        <path d="M7 6V4h10v2M7 10h10M7 14h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="M8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                                     </svg>
                                 </span>
 
-                                <span> DPV </span>
+                                <span>DPV</span>
                             </button>
 
-                            <!-- PACKING -->
-                            <button data-page="packing">
+                            <button type="button" data-page="packing">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M21 8.5 12 4 3 8.5v7L12 20l9-4.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M4 7h16v13H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
 
-                                        <path d="M3 8.5 12 13l9-4.5M12 13v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-
-                                        <path d="M8 6l9 4.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="m4 7 4-4h8l4 4M8 11h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
                                     </svg>
                                 </span>
 
-                                <span> Packing </span>
+                                <span>Packing</span>
                             </button>
 
-                            <!-- LOADING -->
-                            <button data-page="loading">
+                            <button type="button" data-page="loading">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M3 7h11v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M3 7h11v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
 
-                                        <path d="M14 10h4l3 3v4h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M14 10h4l3 3v4h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
 
-                                        <circle cx="7" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <circle cx="7" cy="19" r="1.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
 
-                                        <circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <circle cx="18" cy="19" r="1.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
                                     </svg>
                                 </span>
 
-                                <span> Loading </span>
+                                <span>Loading</span>
                             </button>
 
-                            <!-- MATCHING -->
-                            <button data-page="matching">
+                            <button type="button" data-page="matching">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="M8 7h11M8 12h8M8 17h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
 
-                                        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8" />
-
-                                        <path d="m15 15 3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="m4 7 .01 0M4 12 .01 12M4 17 .01 17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
                                     </svg>
                                 </span>
 
-                                <span> Matching </span>
+                                <span>Matching</span>
                             </button>
 
-                            <!-- MASTER DATA -->
-                            <button data-page="master" class="admin-only">
+                            <button type="button" data-page="master">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                        <path d="M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
 
-                                        <path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="M8 9h8M8 13h8M8 17h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                                     </svg>
                                 </span>
 
-                                <span> Master Data </span>
+                                <span>Master Data</span>
                             </button>
 
-                            <!-- PETUGAS -->
-                            <button data-page="users" class="admin-only">
+                            <button type="button" data-page="users">
                                 <span class="nav-icon">
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                                        <circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
 
-                                        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <circle cx="10" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
 
-                                        <path d="M17 11a3 3 0 1 0 0-6M18 14c1.7.7 3 2.3 3 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        <path d="M16 11a3 3 0 1 0 0-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+
+                                        <path d="M16 14h1a4 4 0 0 1 4 4v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                                     </svg>
                                 </span>
 
-                                <span> Petugas </span>
+                                <span>Petugas</span>
                             </button>
                         </nav>
                     </div>
 
-                    <!-- SIDEBAR USER -->
                     <div class="sidebar-user">
                         <div class="sidebar-user-info">
                             <div id="sidebarUserName"></div>
@@ -195,17 +183,15 @@
 
                         <button id="logoutBtn" class="sidebar-logout" type="button" aria-label="Keluar" title="Keluar">
                             <svg viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M10 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M10 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
 
-                                <path d="M14 8l4 4-4 4M10 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M14 8l4 4-4 4M10 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         </button>
                     </div>
                 </aside>
 
-                <!-- CONTENT -->
                 <main class="content">
-                    <!-- DASHBOARD -->
                     <div id="page-scan">
                         <div class="page-head">
                             <h2>Dashboard</h2>
@@ -214,99 +200,15 @@
                         </div>
                     </div>
 
-                    <!-- DPV -->
                     <div id="page-shipments" class="hidden"></div>
-
                     <!-- PACKING -->
-                    <div id="page-packing" class="hidden">
-                        <div class="page-head">
-                            <h2>Packing</h2>
 
-                            <p>Scan barang berdasarkan DPV yang dipilih.</p>
-                        </div>
+                    <div id="page-packing" class="hidden"></div>
 
-                        <div class="packing-top-grid">
-                            <section class="panel packing-shipment-card">
-                                <div class="section-title">Pilih DPV</div>
+                    <div id="page-loading" class="hidden"></div>
 
-                                <div id="packingShipmentSelector" class="packing-shipment-selector"></div>
+                    <div id="page-matching" class="hidden"></div>
 
-                                <div id="packingShipmentInfo" class="packing-shipment-info">
-                                    <span> Status </span>
-
-                                    <strong> Belum dipilih </strong>
-                                </div>
-                            </section>
-
-                            <section id="packingScannerPanel" class="panel scanner-panel">
-                                <div class="scanner-status">
-                                    <span class="dot"></span>
-
-                                    Scanner Ready
-                                </div>
-
-                                <div class="scan-actions">
-                                    <button id="packingCameraBtn" class="btn btn-primary" type="button">📷 Kamera</button>
-
-                                    <button id="packingManualFocusBtn" class="btn btn-soft" type="button">⌨ Scanner</button>
-                                </div>
-
-                                <input id="packingScanInput" class="scan-input input" inputmode="numeric" autocomplete="off" placeholder="Pilih DPV terlebih dahulu..." aria-label="UPC Packing" disabled />
-
-                                <div class="hint">Scanner Bluetooth/USB diperlakukan sebagai keyboard. Barcode + Enter akan langsung diproses.</div>
-                            </section>
-
-                            <section class="panel packing-history-card">
-                                <div class="section-title">Riwayat Scan</div>
-
-                                <div id="packingHistoryRows" class="table-wrap"></div>
-                            </section>
-                        </div>
-
-                        <section class="panel packing-result-card">
-                            <div class="packing-result-header">
-                                <div>
-                                    <div class="section-title">Hasil Scan DPV</div>
-
-                                    <p id="packingResultShipment">Pilih DPV untuk melihat detail.</p>
-                                </div>
-
-                                <button id="finishPackingBtn" class="btn btn-primary" type="button" disabled>Selesaikan Packing</button>
-                            </div>
-
-                            <div id="packingShipmentResult" class="table-wrap"></div>
-
-                            <div id="packingLastResult" class="last hidden"></div>
-                        </section>
-                    </div>
-
-                    <!-- LOADING -->
-                    <div id="page-loading" class="hidden">
-                        <div class="page-head">
-                            <h2>Loading</h2>
-
-                            <p>Scan barang aktual berdasarkan DPV yang sudah dipacking.</p>
-                        </div>
-
-                        <section class="panel">
-                            <div id="loadingRows" class="table-wrap"></div>
-                        </section>
-                    </div>
-
-                    <!-- MATCHING -->
-                    <div id="page-matching" class="hidden">
-                        <div class="page-head">
-                            <h2>Matching</h2>
-
-                            <p>Bandingkan hasil Packing dengan Loading.</p>
-                        </div>
-
-                        <section class="panel">
-                            <div id="matchingRows" class="table-wrap"></div>
-                        </section>
-                    </div>
-
-                    <!-- MASTER DATA -->
                     <div id="page-master" class="hidden">
                         <div class="page-head">
                             <h2>Master Data</h2>
@@ -316,7 +218,7 @@
 
                         <section class="panel">
                             <div class="toolbar">
-                                <input id="masterSearch" class="input" placeholder="Cari UPC, SKU, nama..." />
+                                <input id="masterSearch" class="input" type="search" placeholder="Cari UPC, SKU, nama..." autocomplete="off" />
 
                                 <button id="addMasterBtn" class="btn btn-primary" type="button">+ Tambah</button>
                             </div>
@@ -325,7 +227,6 @@
                         </section>
                     </div>
 
-                    <!-- USERS -->
                     <div id="page-users" class="hidden">
                         <div class="page-head">
                             <h2>Petugas</h2>
@@ -345,16 +246,13 @@
             </div>
         </section>
 
-        <!-- MODAL -->
-        <div id="modal" class="modal hidden">
+        <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
             <div id="modalContent" class="modal-card"></div>
         </div>
 
-        <!-- TOAST -->
-        <div id="toast" class="toast hidden"></div>
+        <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-        <!-- LOADER -->
-        <div id="loader" class="loader hidden">
+        <div id="loader" class="loader hidden" aria-hidden="true">
             <div class="spinner"></div>
         </div>
 

@@ -1,6 +1,6 @@
-import { state, $, busy, toast, esc } from "./state.js";
+import { state, $, busy, toast, esc, closeModal } from "./state.js";
+
 import { api } from "./api.js";
-import { closeModal } from "./scanner.js";
 
 export async function loadMaster() {
     busy(true);
@@ -13,6 +13,7 @@ export async function loadMaster() {
         }
 
         state.masterRows = r.rows || [];
+
         renderMaster();
     } catch (e) {
         toast(e.message || "Gagal memuat Master Data.", true);
@@ -47,7 +48,12 @@ export function renderMaster() {
             <td>${esc(r.sku)}</td>
             <td>${esc(r.name)}</td>
             <td>
-                <button class="btn btn-danger" data-delete-master="${esc(r.upc)}">Hapus</button>
+                <button
+                    class="btn btn-danger"
+                    data-delete-master="${esc(r.upc)}"
+                >
+                    Hapus
+                </button>
             </td>
         </tr>
         `,
@@ -63,34 +69,51 @@ export function openMaster() {
     $("modalContent").innerHTML = `
         <div class="modal-head">
             <h3>Tambah Barang</h3>
-            <button class="close" data-action="close-modal">×</button>
+
+            <button
+                class="close"
+                data-action="close-modal"
+            >
+                ×
+            </button>
         </div>
 
         <label>UPC</label>
-            <input
-                id="mUpc"
-                class="input"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                autocomplete="off"
-            >
+
+        <input
+            id="mUpc"
+            class="input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+        >
 
         <label>SKU</label>
-                <input
-                id="mSku"
-                class="input"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                autocomplete="off"
-            >
+
+        <input
+            id="mSku"
+            class="input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+        >
 
         <label>Nama Barang</label>
-            <input id="mName" class="input">
 
-        <button id="saveMasterBtn" class="btn btn-primary full">Simpan</button>
-`;
+        <input
+            id="mName"
+            class="input"
+        >
+
+        <button
+            id="saveMasterBtn"
+            class="btn btn-primary full"
+        >
+            Simpan
+        </button>
+    `;
 
     $("modal").classList.remove("hidden");
 
@@ -132,20 +155,25 @@ export async function deleteMaster(upc) {
 
     if (!row) {
         toast("Data barang tidak ditemukan.", true);
+
         return;
     }
 
     const result = await Swal.fire({
         title: "Hapus Barang?",
+
         text: "Data yang dihapus tidak dapat dikembalikan.",
+
         icon: "warning",
 
         showCancelButton: true,
 
         confirmButtonText: "Ya, Hapus!",
+
         cancelButtonText: "Batal",
 
         confirmButtonColor: "#d33",
+
         cancelButtonColor: "#6c757d",
 
         reverseButtons: true,
@@ -156,7 +184,9 @@ export async function deleteMaster(upc) {
 
         customClass: {
             popup: "delete-confirm-popup",
+
             confirmButton: "delete-confirm-btn",
+
             cancelButton: "delete-cancel-btn",
         },
     });
@@ -178,17 +208,25 @@ export async function deleteMaster(upc) {
 
         Swal.fire({
             title: "Berhasil!",
+
             text: r.message || "Data barang berhasil dihapus.",
+
             icon: "success",
+
             confirmButtonText: "OK",
+
             confirmButtonColor: "#198754",
         });
     } catch (e) {
         Swal.fire({
             title: "Gagal!",
+
             text: e.message || "Gagal menghapus data.",
+
             icon: "error",
+
             confirmButtonText: "OK",
+
             confirmButtonColor: "#d33",
         });
     } finally {

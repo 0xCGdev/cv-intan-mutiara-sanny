@@ -4,9 +4,9 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxOfDBN9Dqkk3WbK2ChSmdC
 
 export async function api(action, data = {}, useToken = true) {
     const payload = {
-        action: action,
-        token: useToken ? state.token : "",
-        data: data,
+        action: String(action || "").trim(),
+        token: useToken ? state.token || "" : "",
+        data: data || {},
     };
 
     let response;
@@ -20,31 +20,25 @@ export async function api(action, data = {}, useToken = true) {
             },
             body: JSON.stringify(payload),
         });
-    } catch (error) {
-        console.error("API connection error:", error);
-
+    } catch {
         throw new Error("Tidak dapat terhubung ke Google Apps Script.");
     }
 
     const text = await response.text();
 
-    console.log("API response:", text);
-
     let result;
 
     try {
         result = JSON.parse(text);
-    } catch (error) {
-        console.error("Response bukan JSON:", text);
-
+    } catch {
         throw new Error("Google Apps Script mengembalikan respons yang bukan JSON.");
     }
 
     if (!response.ok) {
-        throw new Error(result.message || `HTTP ${response.status}`);
+        throw new Error(result?.message || `HTTP ${response.status}`);
     }
 
-    if (!result.success && result.code === "SESSION_EXPIRED") {
+    if (!result?.success && result?.code === "SESSION_EXPIRED") {
         setToken("");
     }
 

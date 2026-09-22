@@ -4,24 +4,40 @@ import { api } from "./api.js";
 let dpvRows = [];
 let activeDpvId = "";
 let archiveMode = false;
-
 let dpvTablePage = 1;
 let dpvSearchQuery = "";
 
 const DPV_TABLE_PAGE_SIZE = 10;
-
 const XLSX_CDN = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 
 const ICONS = {
     search: `
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+            viewBox="0 0 24 24"
+            width="17"
+            height="17"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
             <circle cx="11" cy="11" r="7"></circle>
             <path d="m20 20-3.5-3.5"></path>
         </svg>
     `,
 
     import: `
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+            viewBox="0 0 24 24"
+            width="17"
+            height="17"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
             <path d="M12 3v12"></path>
             <path d="m7 10 5 5 5-5"></path>
             <path d="M5 21h14"></path>
@@ -29,7 +45,16 @@ const ICONS = {
     `,
 
     archive: `
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+            viewBox="0 0 24 24"
+            width="17"
+            height="17"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
             <path d="M4 4h16v4H4z"></path>
             <path d="M5 8v12h14V8"></path>
             <path d="M9 12h6"></path>
@@ -37,7 +62,16 @@ const ICONS = {
     `,
 
     trash: `
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+            viewBox="0 0 24 24"
+            width="17"
+            height="17"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
             <path d="M4 7h16"></path>
             <path d="M10 11v6"></path>
             <path d="M14 11v6"></path>
@@ -47,19 +81,29 @@ const ICONS = {
     `,
 
     chevron: `
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
             <path d="m6 9 6 6 6-6"></path>
         </svg>
     `,
 };
 
-export async function loadShipment() {
+export async function loadDPV() {
     await loadDPVList();
 
     const saved = localStorage.getItem("active_dpv");
+    const savedId = String(saved || "").trim();
 
-    if (saved && dpvRows.some((row) => getDpvId(row) === String(saved).trim())) {
-        activeDpvId = String(saved).trim();
+    if (savedId && dpvRows.some((row) => getDpvId(row) === savedId)) {
+        activeDpvId = savedId;
     }
 
     renderDPVPage();
@@ -83,12 +127,9 @@ async function loadDPVList() {
 
         if (activeDpvId && !dpvRows.some((row) => getDpvId(row) === activeDpvId)) {
             activeDpvId = "";
-
             localStorage.removeItem("active_dpv");
         }
     } catch (error) {
-        console.error(error);
-
         dpvRows = [];
 
         toast(error?.message || "Gagal memuat DPV.", true);
@@ -109,53 +150,18 @@ function getDpvDate(row) {
     return String(row?.date || row?.TANGGAL || "").trim();
 }
 
-function getDpvStatusLabel(status) {
-    const value = String(status || "").toUpperCase();
-
-    if (value === "PENDING") {
-        return "Pending";
-    }
-
-    if (value === "READY LOADING" || value === "LOADING") {
-        return "Ongoing";
-    }
-
-    if (value === "SELESAI") {
-        return "Completed";
-    }
-
-    return value || "Pending";
-}
-
-function getDpvStatusClass(status) {
-    const value = String(status || "").toUpperCase();
-
-    if (value === "SELESAI") {
-        return "shipment-status-completed";
-    }
-
-    if (value === "READY LOADING" || value === "LOADING") {
-        return "shipment-status-ongoing";
-    }
-
-    return "shipment-status-pending";
-}
-
 function isDpvCompleted(row) {
     return String(getDpvStatus(row)).toUpperCase() === "SELESAI";
 }
 
 function isDpvImportLocked(row) {
-    const status = String(getDpvStatus(row)).toUpperCase();
-
-    return status !== "PENDING";
+    return String(getDpvStatus(row)).toUpperCase() !== "PENDING";
 }
 
 function renderDPVPage() {
     const page = $("page-shipments");
 
     if (!page) {
-        console.error('Element "#page-shipments" tidak ditemukan.');
         return;
     }
 
@@ -375,8 +381,6 @@ async function loadActiveDPV() {
 
         renderDPVTable(dpv);
     } catch (error) {
-        console.error(error);
-
         toast(error?.message || "Gagal mengambil data DPV.", true);
 
         renderDPVError(error?.message || "Gagal mengambil data DPV.");
@@ -394,7 +398,9 @@ function getFilteredDPVItems(items) {
 
     return items.filter((item) => {
         const sku = String(item?.sku || "").toLowerCase();
+
         const upc = String(item?.upc || "").toLowerCase();
+
         const name = String(item?.name || "").toLowerCase();
 
         return sku.includes(query) || upc.includes(query) || name.includes(query);
@@ -408,13 +414,13 @@ function renderCurrentDPVTable() {
         return;
     }
 
-    const tableData = box.__dpvData;
+    const dpv = box.__dpvData;
 
-    if (!tableData) {
+    if (!dpv) {
         return;
     }
 
-    renderDPVTable(tableData, false);
+    renderDPVTable(dpv, false);
 }
 
 function renderDPVTable(dpv, resetPage = true) {
@@ -425,7 +431,6 @@ function renderDPVTable(dpv, resetPage = true) {
     }
 
     box.className = "dpv-table-container";
-
     box.__dpvData = dpv;
 
     if (resetPage) {
@@ -475,9 +480,8 @@ function renderDPVTable(dpv, resetPage = true) {
     }
 
     const start = (dpvTablePage - 1) * DPV_TABLE_PAGE_SIZE;
-    const end = start + DPV_TABLE_PAGE_SIZE;
 
-    const pageItems = items.slice(start, end);
+    const pageItems = items.slice(start, start + DPV_TABLE_PAGE_SIZE);
 
     box.innerHTML = `
         <div class="table-wrap">
@@ -533,7 +537,6 @@ function renderDPVPagination(totalPages) {
     return `
         <div class="pagination">
             <div class="pagination-controls">
-
                 <button
                     type="button"
                     class="pagination-btn"
@@ -572,7 +575,6 @@ function renderDPVPagination(totalPages) {
                     aria-label="Halaman berikutnya">
                     ›
                 </button>
-
             </div>
         </div>
     `;
@@ -627,7 +629,6 @@ function openDPVSelector() {
     const modal = document.createElement("div");
 
     modal.id = "dpvSelectorModal";
-
     modal.className = "shipment-modal";
 
     const availableRows = Array.isArray(dpvRows) ? dpvRows.filter((row) => !isDpvCompleted(row)) : [];
@@ -660,9 +661,7 @@ function openDPVSelector() {
             </div>
 
             <div class="shipment-modal-body">
-
                 <div class="shipment-field">
-
                     <label for="dpvSelect">
                         Pilih DPV
                     </label>
@@ -688,9 +687,7 @@ function openDPVSelector() {
                                 `;
                             })
                             .join("")}
-
                     </select>
-
                 </div>
 
                 <div class="dpv-or">
@@ -705,7 +702,6 @@ function openDPVSelector() {
                     + Tambah DPV
 
                 </button>
-
             </div>
         </div>
     `;
@@ -730,7 +726,6 @@ function openDPVSelector() {
 
     $("createDpvBtn")?.addEventListener("click", () => {
         modal.remove();
-
         openCreateDPVModal();
     });
 }
@@ -746,7 +741,6 @@ async function selectDPV(id) {
 
     if (!row) {
         toast("DPV tidak ditemukan.", true);
-
         return;
     }
 
@@ -755,7 +749,6 @@ async function selectDPV(id) {
     localStorage.setItem("active_dpv", activeDpvId);
 
     archiveMode = false;
-
     dpvTablePage = 1;
     dpvSearchQuery = "";
 
@@ -770,7 +763,6 @@ function openCreateDPVModal() {
     const modal = document.createElement("div");
 
     modal.id = "createDpvModal";
-
     modal.className = "shipment-modal";
 
     modal.innerHTML = `
@@ -801,10 +793,8 @@ function openCreateDPVModal() {
             </div>
 
             <div class="shipment-modal-body">
-
                 <div class="shipment-field">
-
-                    <label>
+                    <label for="createDpvIdInput">
                         No. DPV
                     </label>
 
@@ -814,14 +804,13 @@ function openCreateDPVModal() {
                         type="text"
                         placeholder="Contoh: DPV-610"
                         autocomplete="off">
-
                 </div>
 
                 <div
                     class="shipment-field"
                     style="margin-top:12px;">
 
-                    <label>
+                    <label for="createDpvDateInput">
                         Tanggal
                     </label>
 
@@ -830,13 +819,10 @@ function openCreateDPVModal() {
                         class="input"
                         type="date"
                         value="${getTodayInputValue()}">
-
                 </div>
-
             </div>
 
             <div class="shipment-modal-footer">
-
                 <button
                     class="btn btn-soft"
                     type="button"
@@ -854,21 +840,19 @@ function openCreateDPVModal() {
                     Buat DPV
 
                 </button>
-
             </div>
         </div>
     `;
 
     document.body.appendChild(modal);
 
-    function backToDPVSelector() {
+    const closeToSelector = () => {
         modal.remove();
-
         openDPVSelector();
-    }
+    };
 
     modal.querySelectorAll("[data-create-dpv-close]").forEach((element) => {
-        element.addEventListener("click", backToDPVSelector);
+        element.addEventListener("click", closeToSelector);
     });
 
     $("saveDpvBtn")?.addEventListener("click", createDPV);
@@ -876,17 +860,18 @@ function openCreateDPVModal() {
     $("createDpvIdInput")?.focus();
 
     $("createDpvIdInput")?.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-            event.preventDefault();
-
-            createDPV();
+        if (event.key !== "Enter") {
+            return;
         }
+
+        event.preventDefault();
+
+        createDPV();
     });
 }
 
 async function createDPV() {
     const idInput = $("createDpvIdInput");
-
     const dateInput = $("createDpvDateInput");
 
     const shipmentId = String(idInput?.value || "").trim();
@@ -895,17 +880,13 @@ async function createDPV() {
 
     if (!shipmentId) {
         toast("No. DPV wajib diisi.", true);
-
         idInput?.focus();
-
         return;
     }
 
     if (!date) {
         toast("Tanggal DPV wajib diisi.", true);
-
         dateInput?.focus();
-
         return;
     }
 
@@ -913,7 +894,6 @@ async function createDPV() {
 
     if (exists) {
         toast(`DPV ${shipmentId} sudah ada.`, true);
-
         return;
     }
 
@@ -936,7 +916,6 @@ async function createDPV() {
         localStorage.setItem("active_dpv", activeDpvId);
 
         archiveMode = false;
-
         dpvTablePage = 1;
         dpvSearchQuery = "";
 
@@ -948,8 +927,6 @@ async function createDPV() {
 
         toast(`DPV ${shipmentId} berhasil dibuat.`);
     } catch (error) {
-        console.error(error);
-
         toast(error?.message || "Gagal membuat DPV.", true);
     } finally {
         busy(false);
@@ -959,7 +936,6 @@ async function createDPV() {
 async function handleImportButton() {
     if (!activeDpvId) {
         openDPVSelector();
-
         return;
     }
 
@@ -976,7 +952,6 @@ async function handleImportButton() {
 
 async function handleImportFile(event) {
     const input = event.target;
-
     const file = input.files?.[0];
 
     input.value = "";
@@ -1020,8 +995,6 @@ async function handleImportFile(event) {
 
         toast(result?.message || `Data DPV ${activeDpvId} berhasil diimport.`);
     } catch (error) {
-        console.error(error);
-
         toast(error?.message || "Gagal import data DPV.", true);
     } finally {
         busy(false);
@@ -1064,8 +1037,8 @@ async function parseImportFile(file) {
 
     const items = [];
 
-    for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
+    for (let index = 1; index < rows.length; index++) {
+        const row = rows[index];
 
         const sku = String(row?.[0] ?? "").trim();
 
@@ -1103,10 +1076,6 @@ async function parseImportFile(file) {
     if (!items.length) {
         throw new Error("Tidak ditemukan data barang valid pada sheet K2.");
     }
-
-    console.log("Sheet yang diimport:", sheetName);
-
-    console.log("Data import:", items);
 
     return items;
 }
@@ -1156,7 +1125,13 @@ function ensureXLSX() {
         const existing = document.querySelector('script[data-xlsx-loader="true"]');
 
         if (existing) {
-            existing.addEventListener("load", () => resolve());
+            existing.addEventListener("load", () => {
+                if (window.XLSX) {
+                    resolve();
+                } else {
+                    reject(new Error("Library Excel berhasil dimuat tetapi tidak tersedia."));
+                }
+            });
 
             existing.addEventListener("error", () => reject(new Error("Gagal memuat library Excel.")));
 
@@ -1166,9 +1141,7 @@ function ensureXLSX() {
         const script = document.createElement("script");
 
         script.src = XLSX_CDN;
-
         script.async = true;
-
         script.dataset.xlsxLoader = "true";
 
         script.onload = () => {
@@ -1248,11 +1221,8 @@ async function handleDeleteDPV() {
         }
 
         activeDpvId = "";
-
         archiveMode = false;
-
         dpvTablePage = 1;
-
         dpvSearchQuery = "";
 
         localStorage.removeItem("active_dpv");
@@ -1263,8 +1233,6 @@ async function handleDeleteDPV() {
 
         toast(result?.message || `DPV ${shipmentId} berhasil dihapus.`);
     } catch (error) {
-        console.error(error);
-
         toast(error?.message || "Gagal menghapus DPV.", true);
     } finally {
         busy(false);
@@ -1276,12 +1244,10 @@ function toggleArchive() {
 
     if (activeDpvId) {
         activeDpvId = "";
-
         localStorage.removeItem("active_dpv");
     }
 
     dpvTablePage = 1;
-
     dpvSearchQuery = "";
 
     renderDPVPage();
@@ -1299,14 +1265,12 @@ function getTodayInputValue() {
     return `${year}-${month}-${day}`;
 }
 
-export function bindShipment() {
+export function bindDPV() {
     const page = $("page-shipments");
 
     if (!page) {
         return;
     }
 
-    if (!page.dataset.dpvBound) {
-        page.dataset.dpvBound = "true";
-    }
+    page.dataset.dpvBound = "true";
 }

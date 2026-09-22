@@ -1,4 +1,4 @@
-import { $, busy, toast } from "./state.js";
+import { $, busy, toast, esc } from "./state.js";
 import { api } from "./api.js";
 
 let matchingReady = false;
@@ -13,15 +13,6 @@ let matchingRows = [];
 let matchingShipments = [];
 let matchingComparison = null;
 let activeMatchingShipmentId = "";
-
-function esc(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
 
 function getShipmentId(row) {
     return String(row?.shipmentId ?? row?.SHIPMENT_ID ?? row?.id ?? "").trim();

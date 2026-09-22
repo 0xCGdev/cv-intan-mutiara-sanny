@@ -1,10 +1,6 @@
-import { $, state, busy, toast } from "./state.js";
+import { $, state } from "./state.js";
 
 import { startSession, login, logout, showLogin } from "./auth.js";
-
-import { applyData, refreshToday } from "./dashboard.js";
-
-import { bindScanner, closeModal } from "./scanner.js";
 
 import { loadMaster, renderMaster, openMaster, deleteMaster } from "./master.js";
 
@@ -18,7 +14,7 @@ import { bindLoading, loadLoading } from "./loading.js";
 
 import { bindMatching, loadMatching } from "./matching.js";
 
-import { bindShipment, loadShipment } from "./shipment.js";
+import { bindDPV, loadDPV } from "./dpv.js";
 
 function closeMenu() {
     document.body.classList.remove("menu-open");
@@ -29,50 +25,66 @@ function closeMenu() {
 function showPage(page) {
     const pages = ["scan", "packing", "loading", "matching", "shipments", "master", "log", "users"];
 
-    pages.forEach((p) => {
-        const el = $("page-" + p);
+    pages.forEach((name) => {
+        const element = $("page-" + name);
 
-        if (el) {
-            el.classList.toggle("hidden", p !== page);
+        if (element) {
+            element.classList.toggle("hidden", name !== page);
         }
     });
 
-    document.querySelectorAll(".nav button").forEach((b) => {
-        b.classList.toggle("active", b.dataset.page === page);
+    document.querySelectorAll(".nav button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.page === page);
     });
 
-    if (page === "scan") {
-        window.setTimeout(() => {
-            $("scanInput")?.focus();
-        }, 80);
-    }
+    switch (page) {
+        case "scan":
+            window.setTimeout(() => {
+                $("scanInput")?.focus();
+            }, 80);
 
-    if (page === "packing") {
-        loadPacking();
-    }
+            break;
 
-    if (page === "loading") {
-        loadLoading();
-    }
+        case "packing":
+            loadPacking();
 
-    if (page === "matching") {
-        loadMatching();
-    }
+            break;
 
-    if (page === "shipments") {
-        loadShipment();
-    }
+        case "loading":
+            loadLoading();
 
-    if (page === "master" && state.me?.role === "ADMIN") {
-        loadMaster();
-    }
+            break;
 
-    if (page === "log" && state.me?.role === "ADMIN") {
-        loadLog();
-    }
+        case "matching":
+            loadMatching();
 
-    if (page === "users" && state.me?.role === "ADMIN") {
-        loadUsers();
+            break;
+
+        case "shipments":
+            loadDPV();
+
+            break;
+
+        case "master":
+            if (state.me?.role === "ADMIN") {
+                loadMaster();
+            }
+
+            break;
+
+        case "log":
+            if (state.me?.role === "ADMIN") {
+                loadLog();
+            }
+
+            break;
+
+        case "users":
+            if (state.me?.role === "ADMIN") {
+                loadUsers();
+            }
+
+            break;
     }
 
     closeMenu();
@@ -81,32 +93,30 @@ function showPage(page) {
 function bindEvents() {
     $("loginBtn")?.addEventListener("click", login);
 
-    $("loginPass")?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
+    $("loginPass")?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
             login();
         }
     });
 
-    $("logoutBtn")?.addEventListener("click", () => {
-        logout();
-    });
+    $("logoutBtn")?.addEventListener("click", logout);
 
-    document.querySelectorAll(".nav button").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            showPage(btn.dataset.page);
+    document.querySelectorAll(".nav button").forEach((button) => {
+        button.addEventListener("click", () => {
+            showPage(button.dataset.page);
         });
     });
 
     $("menuBtn")?.addEventListener("click", () => {
-        const open = document.body.classList.toggle("menu-open");
+        const isOpen = document.body.classList.toggle("menu-open");
 
-        $("menuBtn")?.setAttribute("aria-expanded", String(open));
+        $("menuBtn")?.setAttribute("aria-expanded", String(isOpen));
     });
 
     $("menuOverlay")?.addEventListener("click", closeMenu);
 
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
             closeMenu();
         }
     });
@@ -115,30 +125,36 @@ function bindEvents() {
 
     $("addMasterBtn")?.addEventListener("click", openMaster);
 
-    $("masterRows")?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-delete-master]");
+    $("masterRows")?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-master]");
 
-        if (btn) {
-            deleteMaster(btn.dataset.deleteMaster);
+        if (button) {
+            deleteMaster(button.dataset.deleteMaster);
         }
     });
 
     $("addUserBtn")?.addEventListener("click", openUser);
 
-    $("logSearch")?.addEventListener("input", () => loadLog());
+    $("logSearch")?.addEventListener("input", loadLog);
 
-    $("logPetugas")?.addEventListener("change", () => loadLog());
+    $("logPetugas")?.addEventListener("change", loadLog);
 
-    $("modal")?.addEventListener("click", (e) => {
-        if (e.target.id === "modal" || e.target.closest('[data-action="close-modal"]')) {
-            closeModal();
+    $("modal")?.addEventListener("click", (event) => {
+        if (event.target.id === "modal" || event.target.closest('[data-action="close-modal"]')) {
+            const modal = $("modal");
+
+            const content = $("modalContent");
+
+            modal?.classList.add("hidden");
+
+            if (content) {
+                content.innerHTML = "";
+            }
         }
     });
 }
 
-window.addEventListener("app:ready", (e) => {
-    applyData(e.detail);
-
+window.addEventListener("app:ready", () => {
     showPage("scan");
 });
 
@@ -146,15 +162,13 @@ bindEvents();
 
 bindUserActions();
 
-bindScanner();
-
 bindPacking();
 
 bindLoading();
 
 bindMatching();
 
-bindShipment();
+bindDPV();
 
 showLogin();
 

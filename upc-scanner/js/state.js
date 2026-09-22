@@ -25,7 +25,9 @@ export function toast(message, error = false) {
     if (!el) return;
 
     el.textContent = message;
+
     el.className = "toast" + (error ? " error" : "");
+
     el.classList.remove("hidden");
 
     clearTimeout(window.__toastTimer);
@@ -47,4 +49,15 @@ export function esc(value) {
                 "'": "&#039;",
             })[c],
     );
+}
+
+export function closeModal() {
+    const modal = $("modal");
+    const content = $("modalContent");
+
+    modal?.classList.add("hidden");
+
+    if (content) {
+        content.innerHTML = "";
+    }
 }

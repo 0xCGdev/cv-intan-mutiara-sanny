@@ -1,4 +1,4 @@
-import { state, $, busy, toast } from "./state.js";
+import { state, $, busy, toast, esc } from "./state.js";
 import { api } from "./api.js";
 
 let loadingReady = false;
@@ -16,15 +16,6 @@ let lastDetectedAt = 0;
 let loadingCameraRunning = false;
 let loadingCameraHandler = null;
 let cameraPermissionStream = null;
-
-function esc(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
 
 function getShipmentId(row) {
     return String(row?.shipmentId ?? row?.SHIPMENT_ID ?? row?.id ?? "").trim();
@@ -146,13 +137,9 @@ function formatTimestamp(value) {
     }
 
     const day = String(date.getDate()).padStart(2, "0");
-
     const month = String(date.getMonth() + 1).padStart(2, "0");
-
     const year = date.getFullYear();
-
     const hour = String(date.getHours()).padStart(2, "0");
-
     const minute = String(date.getMinutes()).padStart(2, "0");
 
     return `${day}/${month}/${year} ${hour}:${minute}`;
@@ -212,7 +199,6 @@ function formatRelativeTime(value) {
 
 function timestampHtml(value) {
     const full = formatTimestamp(value);
-
     const relative = formatRelativeTime(value);
 
     if (full === "-") {
@@ -223,9 +209,7 @@ function timestampHtml(value) {
         <span
             class="packing-timestamp"
             data-tooltip="${esc(relative)}">
-
             ${esc(full)}
-
         </span>
     `;
 }
@@ -237,7 +221,7 @@ function renderActiveShipmentButton() {
         return;
     }
 
-    button.textContent = activeShipmentId ? `DPV ${activeShipmentId}` : "Pilih DPV";
+    button.textContent = activeShipmentId || "Pilih DPV";
 }
 
 function prepareLoadingLayout() {
@@ -249,28 +233,20 @@ function prepareLoadingLayout() {
 
     page.innerHTML = `
         <div class="page-head page-head-with-action">
-
             <div>
-
-                <h2>
-                    Loading
-                </h2>
+                <h2>Loading</h2>
 
                 <p>
                     Scan barang yang akan dimuat.
                 </p>
-
             </div>
 
             <button
                 id="loadingChooseShipmentBtn"
                 class="btn btn-soft page-head-action"
                 type="button">
-
                 Pilih DPV
-
             </button>
-
         </div>
 
         <div class="packing-top-grid">
@@ -284,11 +260,8 @@ function prepareLoadingLayout() {
                     </div>
 
                     <div class="scanner-status">
-
                         <span class="dot"></span>
-
                         Scanner Ready
-
                     </div>
 
                 </div>
@@ -299,18 +272,14 @@ function prepareLoadingLayout() {
                         id="loadingCameraBtn"
                         class="btn btn-primary"
                         type="button">
-
                         Kamera
-
                     </button>
 
                     <button
                         id="loadingManualFocusBtn"
                         class="btn btn-soft"
                         type="button">
-
                         Scanner
-
                     </button>
 
                 </div>
@@ -324,10 +293,9 @@ function prepareLoadingLayout() {
                     aria-label="UPC Loading">
 
                 <div class="hint">
-
-                    Scanner USB/Bluetooth dapat digunakan melalui
-                    input ini. Barcode + Enter akan langsung diproses.
-
+                    Scanner USB/Bluetooth dapat digunakan
+                    melalui input ini. Barcode + Enter akan
+                    langsung diproses.
                 </div>
 
                 <div
@@ -374,17 +342,13 @@ function prepareLoadingLayout() {
                     <div
                         id="loadingResultTitle"
                         class="section-title">
-
                         Hasil scan loading
-
                     </div>
 
                     <div
                         id="loadingResultSubtitle"
                         class="packing-result-subtitle">
-
                         Pilih DPV untuk melihat hasil scan.
-
                     </div>
 
                 </div>
@@ -394,9 +358,7 @@ function prepareLoadingLayout() {
                     class="btn btn-primary"
                     type="button"
                     disabled>
-
                     Selesaikan Loading
-
                 </button>
 
             </div>
@@ -447,320 +409,502 @@ function prepareLoadingLayout() {
         });
     }
 
-    window.addEventListener("keydown", (event) => {
-        if (event.key !== "Escape") {
-            return;
-        }
+    $("finishLoadingBtn")?.addEventListener("click", finishLoading);
+}
 
-        const currentModal = $("modal");
+function normalizeUPC(value) {
+    let upc = String(value || "")
+        .replace(/\D/g, "")
+        .trim();
 
-        if (currentModal && !currentModal.classList.contains("hidden")) {
-            closeLoadingModal();
-        }
+    if (!upc) {
+        return "";
+    }
+
+    if (upc.length === 11) {
+        upc = `0${upc}`;
+    }
+
+    return upc;
+}
+
+function getShipmentItems(shipment) {
+    const items = shipment?.ITEMS ?? shipment?.items ?? [];
+
+    return Array.isArray(items) ? items : [];
+}
+
+function getItemUPC(item) {
+    return normalizeUPC(item?.upc ?? item?.UPC ?? "");
+}
+
+function getItemSKU(item) {
+    return String(item?.sku ?? item?.SKU ?? "-").trim();
+}
+
+function getItemName(item) {
+    return String(item?.name ?? item?.NAMA_BARANG ?? "-").trim();
+}
+
+function getItemTarget(item) {
+    return Number(item?.qty ?? item?.QTY ?? item?.target ?? item?.TARGET ?? 0);
+}
+
+function findShipmentItemByUPC(upc) {
+    const value = normalizeUPC(upc);
+
+    if (!value) {
+        return null;
+    }
+
+    const items = getShipmentItems(activeShipment);
+
+    return items.find((item) => getItemUPC(item) === value) || null;
+}
+
+async function lookupUPC(upc) {
+    const value = normalizeUPC(upc);
+
+    if (!value) {
+        throw new Error("UPC kosong.");
+    }
+
+    if (!activeShipmentId || !activeShipment) {
+        throw new Error("Pilih DPV terlebih dahulu.");
+    }
+
+    const status = getStatus(activeShipment);
+
+    if (status !== "READY LOADING" && status !== "LOADING") {
+        throw new Error("DPV ini belum siap untuk proses Loading.");
+    }
+
+    const items = getShipmentItems(activeShipment);
+
+    if (!items.length) {
+        throw new Error(`DPV ${activeShipmentId} belum memiliki data barang.`);
+    }
+
+    const item = findShipmentItemByUPC(value);
+
+    if (!item) {
+        throw new Error(`UPC ${value} tidak terdaftar pada DPV ${activeShipmentId}.`);
+    }
+
+    return {
+        upc: getItemUPC(item) || value,
+        sku: getItemSKU(item),
+        name: getItemName(item),
+        target: getItemTarget(item),
+    };
+}
+
+async function loadShipments() {
+    const result = await api("getShipments");
+
+    if (!result?.success) {
+        throw new Error(result?.message || "Gagal mengambil data DPV.");
+    }
+
+    shipments = getShipmentRows(result)
+        .map((row) => ({
+            ...row,
+            shipmentId: getShipmentId(row),
+            status: getStatus(row),
+        }))
+        .filter((row) => row.shipmentId);
+
+    return shipments;
+}
+
+async function loadActiveShipment() {
+    if (!activeShipmentId) {
+        activeShipment = null;
+        return null;
+    }
+
+    const result = await api("getShipment", {
+        shipmentId: activeShipmentId,
     });
 
-    window.addEventListener("loading:stop", () => {
-        stopLoadingCamera();
+    if (!result?.success) {
+        throw new Error(result?.message || "Gagal mengambil data DPV.");
+    }
+
+    activeShipment = result?.shipment ?? result?.data?.shipment ?? result?.data ?? null;
+
+    if (!activeShipment) {
+        throw new Error("Data DPV tidak ditemukan.");
+    }
+
+    activeShipment.shipmentId = getShipmentId(activeShipment) || activeShipmentId;
+
+    activeShipment.status = getStatus(activeShipment);
+
+    return activeShipment;
+}
+
+function getSavedShipmentId() {
+    return String(localStorage.getItem(getStorageKey()) || "").trim();
+}
+
+async function restoreActiveShipment() {
+    const savedId = getSavedShipmentId();
+
+    if (!savedId) {
+        return false;
+    }
+
+    const row = shipments.find((item) => getShipmentId(item) === savedId);
+
+    if (!row) {
+        clearActiveShipment();
+        return false;
+    }
+
+    const status = getStatus(row);
+
+    if (status !== "READY LOADING" && status !== "LOADING") {
+        clearActiveShipment();
+        return false;
+    }
+
+    activeShipmentId = savedId;
+
+    try {
+        await loadActiveShipment();
+
+        if (!activeShipment) {
+            clearActiveShipment();
+            activeShipmentId = "";
+            return false;
+        }
+
+        renderActiveShipmentButton();
+        await refreshLoadingData();
+
+        return true;
+    } catch {
+        activeShipmentId = "";
+        activeShipment = null;
+        clearActiveShipment();
+
+        renderActiveShipmentButton();
+
+        return false;
+    }
+}
+
+function getAvailableShipments() {
+    return shipments.filter((row) => {
+        const status = getStatus(row);
+
+        return status === "READY LOADING" || status === "LOADING";
     });
 }
 
 function showShipmentSelectModal() {
     const modal = $("modal");
 
-    const content = $("modalContent");
-
-    if (!modal || !content) {
-        toast("Modal tidak ditemukan.", true);
-
+    if (!modal) {
         return;
     }
 
-    stopLoadingCamera();
+    const available = getAvailableShipments();
 
-    const availableShipments = (Array.isArray(shipments) ? shipments : [])
-        .filter((shipment) => getStatus(shipment) === "READY LOADING" || getStatus(shipment) === "LOADING")
-        .map((shipment) => getShipmentId(shipment))
-        .filter(Boolean);
+    modal.innerHTML = `
+        <div class="modal-backdrop">
+            <div
+                class="modal-card"
+                role="dialog"
+                aria-modal="true">
 
-    if (!availableShipments.length) {
-        toast("Tidak ada DPV yang tersedia untuk Loading.", true);
+                <div class="modal-head">
 
-        return;
-    }
+                    <div>
+                        <h3>Pilih DPV</h3>
 
-    content.innerHTML = `
-        <div class="modal-head">
+                        <p>
+                            Pilih DPV yang akan diproses.
+                        </p>
+                    </div>
 
-            <h3>
-                Pilih DPV
-            </h3>
+                    <button
+                        type="button"
+                        class="icon-btn"
+                        data-action="close-modal"
+                        aria-label="Tutup">
+                        ×
+                    </button>
 
-            <button
-                class="close"
-                data-action="close-modal"
-                aria-label="Tutup"
-                type="button">
+                </div>
 
-                ×
+                <div class="modal-body">
 
-            </button>
+                    ${
+                        available.length
+                            ? `
+                                <label
+                                    class="field-label"
+                                    for="loadingShipmentSelect">
+                                    DPV
+                                </label>
 
-        </div>
+                                <select
+                                    id="loadingShipmentSelect"
+                                    class="input">
+                                    <option value="">
+                                        Pilih DPV
+                                    </option>
 
-        <div class="packing-shipment-modal">
+                                    ${available
+                                        .map(
+                                            (row) =>
+                                                `<option value="${esc(getShipmentId(row))}">
+                                                ${esc(getShipmentId(row))}
+                                            </option>`,
+                                        )
+                                        .join("")}
+                                </select>
 
-            <div class="packing-field">
+                                <div class="modal-or">
+                                    atau
+                                </div>
+                            `
+                            : `
+                                <div class="empty-state">
+                                    <div class="empty-title">
+                                        Tidak ada DPV
+                                    </div>
 
-                <label
-                    for="loadingShipmentModalSelect">
+                                    <div class="empty-text">
+                                        Belum ada DPV yang
+                                        siap untuk Loading.
+                                    </div>
+                                </div>
+                            `
+                    }
 
-                    DPV
+                    ${
+                        available.length
+                            ? `
+                                <button
+                                    id="loadingConfirmShipmentBtn"
+                                    class="btn btn-primary"
+                                    type="button">
+                                    Gunakan DPV
+                                </button>
+                            `
+                            : ""
+                    }
 
-                </label>
-
-                <select
-                    id="loadingShipmentModalSelect"
-                    class="input">
-
-                    <option value="">
-                        Pilih DPV
-                    </option>
-
-                    ${availableShipments
-                        .map(
-                            (id) => `
-                                <option
-                                    value="${esc(id)}"
-                                    ${id === activeShipmentId ? "selected" : ""}>
-
-                                    ${esc(id)}
-
-                                </option>
-                            `,
-                        )
-                        .join("")}
-
-                </select>
+                </div>
 
             </div>
-
         </div>
     `;
 
     modal.classList.remove("hidden");
 
-    const select = $("loadingShipmentModalSelect");
+    const select = $("loadingShipmentSelect");
 
-    select?.addEventListener("change", async (event) => {
-        const shipmentId = String(event.target.value || "").trim();
+    if (select && activeShipmentId) {
+        select.value = activeShipmentId;
+    }
 
-        if (!shipmentId) {
+    $("loadingConfirmShipmentBtn")?.addEventListener("click", async () => {
+        const value = $("loadingShipmentSelect")?.value?.trim();
+
+        if (!value) {
+            toast("Pilih DPV terlebih dahulu.", "warning");
             return;
         }
 
-        await selectShipment(shipmentId);
+        await selectShipment(value);
     });
 
-    requestAnimationFrame(() => {
-        select?.focus();
+    if (select) {
+        select.focus();
+    }
+}
+
+function closeLoadingModal() {
+    const modal = $("modal");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("hidden");
+    modal.innerHTML = "";
+}
+
+async function selectShipment(shipmentId) {
+    const id = String(shipmentId || "").trim();
+
+    if (!id) {
+        return;
+    }
+
+    busy(true);
+
+    try {
+        const row = shipments.find((item) => getShipmentId(item) === id);
+
+        if (!row) {
+            throw new Error("DPV tidak ditemukan.");
+        }
+
+        const status = getStatus(row);
+
+        if (status !== "READY LOADING" && status !== "LOADING") {
+            throw new Error("DPV belum siap untuk proses Loading.");
+        }
+
+        activeShipmentId = id;
+
+        await loadActiveShipment();
+
+        if (!activeShipment) {
+            throw new Error("Data DPV tidak ditemukan.");
+        }
+
+        saveActiveShipment();
+
+        renderActiveShipmentButton();
+
+        closeLoadingModal();
+
+        await refreshLoadingData();
+
+        toast(`DPV ${activeShipmentId} dipilih.`, "success");
+
+        focusLoadingInput();
+    } catch (error) {
+        toast(error?.message || "Gagal memilih DPV.", "error");
+    } finally {
+        busy(false);
+    }
+}
+
+async function refreshLoadingData() {
+    if (!activeShipmentId) {
+        loadingRows = [];
+        todayHistoryRows = [];
+
+        renderLoadingResult();
+        renderLoadingHistory();
+        updateLoadingState();
+
+        return;
+    }
+
+    await loadActiveShipment();
+
+    const result = await api("getLoadingHistory", {
+        shipmentId: activeShipmentId,
     });
+
+    if (!result?.success) {
+        throw new Error(result?.message || "Gagal mengambil riwayat Loading.");
+    }
+
+    loadingRows = getLoadingRows(result).map(normalizeLoadingRow);
+
+    todayHistoryRows = loadingRows.filter(isTodayLoadingRow);
+
+    renderLoadingResult();
+    renderLoadingHistory();
+    updateLoadingState();
 }
 
-function renderLastResult(row) {
-    const box = $("loadingLastResult");
+function isTodayLoadingRow(row) {
+    const value = row?.timestamp ?? row?.lastUpdate ?? "";
 
-    if (!box) {
-        return;
+    const date = parseTimestamp(value);
+
+    if (!date) {
+        return false;
     }
 
-    if (!row) {
-        box.innerHTML = `
-            <div class="last-title">
-                HASIL SCAN TERAKHIR
-            </div>
+    const now = new Date();
 
-            <div class="last-name">
-                Belum ada scan
-            </div>
-
-            <div class="last-meta">
-                Pilih DPV lalu mulai scan.
-            </div>
-        `;
-
-        return;
-    }
-
-    const item = normalizeLoadingRow(row);
-
-    box.innerHTML = `
-        <div class="last-title">
-            HASIL SCAN TERAKHIR
-        </div>
-
-        <div class="last-name">
-            ${esc(item.name || "-")}
-        </div>
-
-        <div class="last-meta">
-            UPC:
-            ${esc(item.upc || "-")}
-            · SKU:
-            ${esc(item.sku || "-")}
-        </div>
-
-        <div class="last-meta">
-            Timestamp:
-            ${timestampHtml(item.timestamp)}
-        </div>
-
-        <div class="last-qty">
-            Qty:
-            ${Number(item.qty || 0)}
-        </div>
-    `;
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
 }
 
-function renderLastError(message) {
-    const box = $("loadingLastResult");
+function getLoadingTotals() {
+    const items = getShipmentItems(activeShipment);
 
-    if (!box) {
-        return;
+    let target = 0;
+    let loaded = 0;
+
+    for (const item of items) {
+        target += getItemTarget(item);
+
+        const upc = getItemUPC(item);
+
+        if (!upc) {
+            continue;
+        }
+
+        const rows = loadingRows.filter((row) => normalizeUPC(row.upc) === upc);
+
+        loaded += rows.reduce((sum, row) => sum + Number(row.qty || 0), 0);
     }
 
-    box.innerHTML = `
-        <div
-            class="last-title"
-            style="color:var(--danger)">
-
-            SCAN GAGAL
-
-        </div>
-
-        <div
-            class="last-name"
-            style="color:var(--danger)">
-
-            UPC Tidak Ditemukan
-
-        </div>
-
-        <div class="last-meta">
-            ${esc(message || "Scan gagal.")}
-        </div>
-    `;
+    return {
+        target,
+        loaded,
+        remaining: Math.max(0, target - loaded),
+    };
 }
 
-function renderHistory() {
-    const container = $("loadingHistoryRows");
+function getLoadedQty(upc) {
+    const value = normalizeUPC(upc);
 
-    if (!container) {
-        return;
+    if (!value) {
+        return 0;
     }
 
-    const rows = todayHistoryRows.map(normalizeLoadingRow).filter((row) => row.upc && row.shipmentId);
+    return loadingRows.filter((row) => normalizeUPC(row.upc) === value).reduce((sum, row) => sum + Number(row.qty || 0), 0);
+}
 
-    rows.sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() || 0) - (parseTimestamp(a.timestamp)?.getTime() || 0));
+function getLoadingStatus(item) {
+    const target = getItemTarget(item);
 
-    container.innerHTML = `
-        <table class="table">
+    const loaded = getLoadedQty(getItemUPC(item));
 
-            <thead>
+    if (loaded >= target) {
+        return "SELESAI";
+    }
 
-                <tr>
+    if (loaded > 0) {
+        return "SEBAGIAN";
+    }
 
-                    <th>
-                        UPC
-                    </th>
+    return "BELUM";
+}
 
-                    <th>
-                        SKU
-                    </th>
+function getStatusClass(status) {
+    switch (String(status || "").toUpperCase()) {
+        case "SELESAI":
+            return "success";
 
-                    <th>
-                        Nama Barang
-                    </th>
+        case "SEBAGIAN":
+            return "warning";
 
-                    <th>
-                        Qty
-                    </th>
-
-                    <th>
-                        Nama Petugas
-                    </th>
-
-                    <th>
-                        Timestamp
-                    </th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                ${
-                    rows.length
-                        ? rows
-                              .map(
-                                  (row) => `
-                                    <tr>
-
-                                        <td>
-                                            ${esc(row.upc)}
-                                        </td>
-
-                                        <td>
-                                            ${esc(row.sku)}
-                                        </td>
-
-                                        <td>
-                                            ${esc(row.name)}
-                                        </td>
-
-                                        <td class="qty">
-                                            ${Number(row.qty || 0)}
-                                        </td>
-
-                                        <td>
-                                            ${esc(row.operator || "-")}
-                                        </td>
-
-                                        <td>
-                                            ${timestampHtml(row.timestamp)}
-                                        </td>
-
-                                    </tr>
-                                `,
-                              )
-                              .join("")
-                        : `
-                            <tr>
-
-                                <td
-                                    colspan="6"
-                                    class="packing-result-empty">
-
-                                    Belum ada riwayat scan hari ini.
-
-                                </td>
-
-                            </tr>
-                        `
-                }
-
-            </tbody>
-
-        </table>
-    `;
+        case "BELUM":
+        default:
+            return "muted";
+    }
 }
 
 function renderLoadingResult() {
+    const container = $("loadingResultRows");
+
     const title = $("loadingResultTitle");
 
     const subtitle = $("loadingResultSubtitle");
-
-    const container = $("loadingResultRows");
 
     if (!container) {
         return;
@@ -776,490 +920,870 @@ function renderLoadingResult() {
         }
 
         container.innerHTML = `
-            <table class="table packing-result-table">
+            <div class="empty-state">
+                <div class="empty-title">
+                    Belum ada DPV
+                </div>
 
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            UPC
-                        </th>
-
-                        <th>
-                            SKU
-                        </th>
-
-                        <th>
-                            Nama Barang
-                        </th>
-
-                        <th>
-                            Qty
-                        </th>
-
-                        <th>
-                            Last Update
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    <tr>
-
-                        <td
-                            colspan="5"
-                            class="packing-result-empty">
-
-                            Pilih DPV untuk melihat hasil scan.
-
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
+                <div class="empty-text">
+                    Pilih DPV terlebih dahulu.
+                </div>
+            </div>
         `;
 
         return;
     }
 
+    const items = getShipmentItems(activeShipment);
+
     if (title) {
-        title.textContent = `Hasil scan loading DPV ${activeShipmentId}`;
+        title.textContent = `Hasil Loading — ${activeShipmentId}`;
     }
 
     if (subtitle) {
-        subtitle.textContent = "Hasil scan barang untuk DPV ini.";
+        const totals = getLoadingTotals();
+
+        subtitle.textContent = `${totals.loaded} / ${totals.target} Qty`;
     }
 
-    const sourceRows = loadingRows.map(normalizeLoadingRow).filter((row) => row.upc);
+    if (!items.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-title">
+                    Belum ada barang
+                </div>
 
-    const grouped = new Map();
+                <div class="empty-text">
+                    DPV belum memiliki item.
+                </div>
+            </div>
+        `;
 
-    sourceRows.forEach((row) => {
-        const key = row.upc;
-
-        const existing = grouped.get(key);
-
-        if (!existing) {
-            grouped.set(key, {
-                ...row,
-                qty: Number(row.qty || 0),
-            });
-
-            return;
-        }
-
-        existing.qty += Number(row.qty || 0);
-
-        const currentTime = parseTimestamp(existing.lastUpdate)?.getTime() || 0;
-
-        const newTime = parseTimestamp(row.lastUpdate)?.getTime() || 0;
-
-        if (newTime >= currentTime) {
-            existing.sku = row.sku || existing.sku;
-
-            existing.name = row.name || existing.name;
-
-            existing.operator = row.operator || existing.operator;
-
-            existing.lastUpdate = row.lastUpdate || existing.lastUpdate;
-        }
-    });
-
-    const rows = Array.from(grouped.values());
-
-    rows.sort((a, b) => (parseTimestamp(b.lastUpdate)?.getTime() || 0) - (parseTimestamp(a.lastUpdate)?.getTime() || 0));
+        return;
+    }
 
     container.innerHTML = `
-        <table class="table packing-result-table">
-
+        <table class="data-table">
             <thead>
-
                 <tr>
-
-                    <th>
-                        UPC
-                    </th>
-
-                    <th>
-                        SKU
-                    </th>
-
-                    <th>
-                        Nama Barang
-                    </th>
-
-                    <th>
-                        Qty
-                    </th>
-
-                    <th>
-                        Last Update
-                    </th>
-
+                    <th>UPC</th>
+                    <th>SKU</th>
+                    <th>Nama Barang</th>
+                    <th>Target</th>
+                    <th>Loading</th>
+                    <th>Selisih</th>
+                    <th>Status</th>
                 </tr>
-
             </thead>
 
             <tbody>
+                ${items
+                    .map((item) => {
+                        const upc = getItemUPC(item);
 
-                ${
-                    rows.length
-                        ? rows
-                              .map(
-                                  (row) => `
-                                    <tr>
+                        const target = getItemTarget(item);
 
-                                        <td>
-                                            ${esc(row.upc)}
-                                        </td>
+                        const loaded = getLoadedQty(upc);
 
-                                        <td>
-                                            ${esc(row.sku)}
-                                        </td>
+                        const difference = loaded - target;
 
-                                        <td>
-                                            ${esc(row.name)}
-                                        </td>
+                        const status = getLoadingStatus(item);
 
-                                        <td class="qty">
-                                            ${Number(row.qty || 0)}
-                                        </td>
-
-                                        <td>
-                                            ${timestampHtml(row.lastUpdate)}
-                                        </td>
-
-                                    </tr>
-                                `,
-                              )
-                              .join("")
-                        : `
+                        return `
                             <tr>
-
-                                <td
-                                    colspan="5"
-                                    class="packing-result-empty">
-
-                                    Belum ada hasil scan untuk
-                                    DPV ${esc(activeShipmentId)}.
-
+                                <td>
+                                    ${esc(upc || "-")}
                                 </td>
 
+                                <td>
+                                    ${esc(getItemSKU(item))}
+                                </td>
+
+                                <td class="text-left">
+                                    ${esc(getItemName(item))}
+                                </td>
+
+                                <td>
+                                    ${target}
+                                </td>
+
+                                <td>
+                                    ${loaded}
+                                </td>
+
+                                <td>
+                                    ${difference}
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="status-badge ${getStatusClass(status)}">
+                                        ${esc(status)}
+                                    </span>
+                                </td>
                             </tr>
-                        `
-                }
-
+                        `;
+                    })
+                    .join("")}
             </tbody>
-
         </table>
     `;
 }
 
-function renderLoadingPage() {
-    renderActiveShipmentButton();
-    renderHistory();
-    renderLoadingResult();
+function renderLoadingHistory() {
+    const container = $("loadingHistoryRows");
+
+    if (!container) {
+        return;
+    }
+
+    if (!activeShipmentId) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-title">
+                    Belum ada DPV
+                </div>
+
+                <div class="empty-text">
+                    Pilih DPV terlebih dahulu.
+                </div>
+            </div>
+        `;
+
+        return;
+    }
+
+    if (!todayHistoryRows.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-title">
+                    Belum ada scan
+                </div>
+
+                <div class="empty-text">
+                    Belum ada riwayat scan Loading hari ini.
+                </div>
+            </div>
+        `;
+
+        return;
+    }
+
+    const rows = [...todayHistoryRows].sort((a, b) => {
+        const dateA = parseTimestamp(a.timestamp)?.getTime() || 0;
+
+        const dateB = parseTimestamp(b.timestamp)?.getTime() || 0;
+
+        return dateB - dateA;
+    });
+
+    container.innerHTML = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>UPC</th>
+                    <th>SKU</th>
+                    <th>Nama Barang</th>
+                    <th>Qty</th>
+                    <th>Nama Petugas</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${rows
+                    .map(
+                        (row) => `
+                            <tr>
+                                <td>
+                                    ${esc(row.upc || "-")}
+                                </td>
+
+                                <td>
+                                    ${esc(row.sku || "-")}
+                                </td>
+
+                                <td class="text-left">
+                                    ${esc(row.name || "-")}
+                                </td>
+
+                                <td>
+                                    ${Number(row.qty || 0)}
+                                </td>
+
+                                <td>
+                                    ${esc(row.operator || "-")}
+                                </td>
+
+                                <td>
+                                    ${timestampHtml(row.timestamp)}
+                                </td>
+                            </tr>
+                        `,
+                    )
+                    .join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function updateLoadingState() {
+    const finishButton = $("finishLoadingBtn");
 
     const input = $("loadingScanInput");
 
-    const cameraBtn = $("loadingCameraBtn");
+    const cameraButton = $("loadingCameraBtn");
 
-    const manualBtn = $("loadingManualFocusBtn");
-
-    const finishBtn = $("finishLoadingBtn");
+    const manualButton = $("loadingManualFocusBtn");
 
     const status = getStatus(activeShipment);
 
-    const canScan = !!activeShipmentId && (status === "READY LOADING" || status === "LOADING");
-
-    if (cameraBtn) {
-        cameraBtn.disabled = !canScan;
-    }
-
-    if (manualBtn) {
-        manualBtn.disabled = !canScan;
-    }
+    const canScan = Boolean(activeShipmentId && activeShipment && (status === "READY LOADING" || status === "LOADING"));
 
     if (input) {
         input.disabled = !canScan;
 
-        input.placeholder = canScan ? "Scan UPC di sini..." : "Pilih DPV terlebih dahulu...";
+        input.placeholder = canScan ? "Scan atau masukkan UPC..." : "Pilih DPV terlebih dahulu...";
     }
 
-    if (finishBtn) {
-        finishBtn.disabled = !canScan || !loadingRows.length;
-
-        finishBtn.onclick = finishLoading;
+    if (cameraButton) {
+        cameraButton.disabled = !canScan;
     }
+
+    if (manualButton) {
+        manualButton.disabled = !canScan;
+    }
+
+    if (finishButton) {
+        const totals = getLoadingTotals();
+
+        const complete = canScan && totals.target > 0 && totals.loaded >= totals.target;
+
+        finishButton.disabled = !complete;
+
+        finishButton.textContent = complete ? "Selesaikan Loading" : "Selesaikan Loading";
+    }
+
+    renderActiveShipmentButton();
 }
 
-async function loadShipments() {
-    try {
-        const response = await api("getShipments");
+function updateLastResult(item, qty, timestamp = new Date()) {
+    const container = $("loadingLastResult");
 
-        if (!response?.success) {
-            throw new Error(response?.message || "Gagal mengambil data DPV.");
-        }
-
-        shipments = getShipmentRows(response);
-
-        if (!Array.isArray(shipments)) {
-            shipments = [];
-        }
-    } catch (error) {
-        console.error("Load Loading Shipment:", error);
-
-        shipments = [];
-
-        throw error;
-    }
-}
-
-async function loadTodayHistory() {
-    try {
-        const response = await api("getTodayRowsForUser");
-
-        if (!response?.success) {
-            console.warn("Gagal mengambil riwayat scan:", response?.message);
-
-            renderHistory();
-
-            return;
-        }
-
-        const rows = response.rows || response.data?.rows || [];
-
-        if (!Array.isArray(rows)) {
-            renderHistory();
-
-            return;
-        }
-
-        todayHistoryRows = rows.map((row) => ({
-            shipmentId: String(row.shipmentId || row.SHIPMENT_ID || ""),
-
-            upc: String(row.upc || row.UPC || ""),
-
-            sku: String(row.sku || row.SKU || "-"),
-
-            name: String(row.name || row.NAMA_BARANG || "-"),
-
-            qty: Number(row.qty || row.QTY || 0),
-
-            operator: String(row.operator || row.operators || row.petugas || row.PETUGAS || "-"),
-
-            timestamp: row.timestamp || row.TIMESTAMP || row.lastScan || "",
-        }));
-
-        renderHistory();
-    } catch (error) {
-        console.error("Load Loading History:", error);
-
-        renderHistory();
-    }
-}
-
-async function restoreActiveShipment() {
-    const saved = localStorage.getItem(getStorageKey());
-
-    if (!saved) {
-        activeShipmentId = "";
-        activeShipment = null;
-        loadingRows = [];
-
+    if (!container) {
         return;
     }
 
-    const found = shipments.find((shipment) => getShipmentId(shipment) === saved);
+    const iso = timestamp instanceof Date ? timestamp.toISOString() : timestamp;
 
-    if (!found) {
-        clearActiveShipment();
+    const displayTime = formatTimestamp(iso);
 
-        activeShipmentId = "";
-        activeShipment = null;
-        loadingRows = [];
+    container.innerHTML = `
+        <div class="last-title">
+            HASIL SCAN TERAKHIR
+        </div>
 
-        return;
-    }
+        <div class="last-name">
+            ${esc(item?.name || "-")}
+        </div>
 
-    try {
-        const response = await api("getShipment", {
-            shipmentId: saved,
-        });
+        <div class="last-meta">
+            <strong>SKU:</strong>
+            ${esc(item?.sku || "-")}
+            &nbsp;•&nbsp;
 
-        if (!response?.success) {
-            clearActiveShipment();
+            <strong>UPC:</strong>
+            ${esc(item?.upc || "-")}
+            &nbsp;•&nbsp;
 
-            activeShipmentId = "";
-            activeShipment = null;
-            loadingRows = [];
+            <strong>Qty:</strong>
+            ${Number(qty || 0)}
+        </div>
 
-            return;
-        }
-
-        const shipment = response.shipment || response.data?.shipment || null;
-
-        if (!shipment || (getStatus(shipment) !== "READY LOADING" && getStatus(shipment) !== "LOADING")) {
-            clearActiveShipment();
-
-            activeShipmentId = "";
-            activeShipment = null;
-            loadingRows = [];
-
-            return;
-        }
-
-        activeShipmentId = saved;
-
-        activeShipment = shipment;
-
-        loadingRows = getLoadingRows(response);
-
-        saveActiveShipment();
-    } catch (error) {
-        console.error("Restore Loading Shipment:", error);
-
-        activeShipmentId = "";
-        activeShipment = null;
-        loadingRows = [];
-
-        clearActiveShipment();
-    }
+        <div class="last-meta">
+            ${esc(displayTime)}
+        </div>
+    `;
 }
 
-export async function loadLoading() {
-    prepareLoadingLayout();
-
-    try {
-        busy(true);
-
-        await loadShipments();
-
-        await restoreActiveShipment();
-
-        await loadTodayHistory();
-
-        renderLoadingPage();
-
-        if (!activeShipmentId) {
-            setTimeout(() => {
-                showShipmentSelectModal();
-            }, 100);
-        }
-    } catch (error) {
-        console.error("Load Loading:", error);
-
-        toast(error?.message || "Gagal memuat Loading.", true);
-
-        renderLoadingPage();
-    } finally {
-        busy(false);
-    }
+function normalizeOperator() {
+    return String(state?.me?.name ?? state?.me?.nama ?? state?.me?.username ?? "-").trim();
 }
 
-async function selectShipment(shipmentId) {
-    shipmentId = String(shipmentId || "").trim();
-
-    stopLoadingCamera();
-
-    if (!shipmentId) {
-        activeShipmentId = "";
-        activeShipment = null;
-        loadingRows = [];
-
-        clearActiveShipment();
-
-        renderLoadingPage();
-
-        return;
+async function saveLoadingScan(item, qty) {
+    if (!activeShipmentId) {
+        throw new Error("Pilih DPV terlebih dahulu.");
     }
 
-    try {
-        busy(true);
+    const operator = normalizeOperator();
 
-        const response = await api("getShipment", {
-            shipmentId,
-        });
+    const result = await api("loadingScan", {
+        shipmentId: activeShipmentId,
 
-        if (!response?.success) {
-            throw new Error(response?.message || "DPV tidak ditemukan.");
-        }
+        upc: normalizeUPC(item.upc),
 
-        const shipment = response.shipment || response.data?.shipment || null;
+        sku: item.sku,
 
-        if (!shipment) {
-            throw new Error("Data DPV tidak valid.");
-        }
+        name: item.name,
 
-        const status = getStatus(shipment);
+        qty: Number(qty || 1),
 
-        if (status !== "READY LOADING" && status !== "LOADING") {
-            throw new Error("DPV ini belum siap untuk proses Loading.");
-        }
-
-        activeShipmentId = shipmentId;
-
-        activeShipment = shipment;
-
-        loadingRows = getLoadingRows(response);
-
-        saveActiveShipment();
-
-        renderLoadingPage();
-
-        closeLoadingModal();
-
-        toast(`DPV ${shipmentId} dipilih.`);
-    } catch (error) {
-        console.error("Select Loading DPV error:", error);
-
-        toast(error?.message || "Gagal memilih DPV.", true);
-    } finally {
-        busy(false);
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                focusLoadingInput();
-            });
-        });
-    }
-}
-
-async function lookupUPC(upc) {
-    const value = String(upc || "").trim();
-
-    if (!value) {
-        return null;
-    }
-
-    const response = await api("lookupUPC", {
-        upc: value,
+        operator,
     });
 
-    if (!response?.success) {
-        throw new Error(response?.message || "UPC tidak ditemukan.");
+    if (!result?.success) {
+        throw new Error(result?.message || "Gagal menyimpan scan Loading.");
     }
 
-    return response.item || response.data?.item || null;
+    return result;
 }
 
 async function processScan(upc) {
-    const value = String(upc || "").trim();
+    const value = normalizeUPC(upc);
 
     if (!value) {
         return;
     }
 
     if (!activeShipmentId) {
-        toast("Pilih DPV terlebih dahulu.", true);
+        toast("Pilih DPV terlebih dahulu.", "warning");
 
         focusLoadingInput();
+
+        return;
+    }
+
+    const now = Date.now();
+
+    if (value === lastDetected && now - lastDetectedAt < 700) {
+        return;
+    }
+
+    lastDetected = value;
+
+    lastDetectedAt = now;
+
+    busy(true);
+
+    try {
+        const item = await lookupUPC(value);
+
+        const loaded = getLoadedQty(item.upc);
+
+        const target = Number(item.target || 0);
+
+        const remaining = Math.max(0, target - loaded);
+
+        if (target > 0 && remaining <= 0) {
+            throw new Error(`Qty loading untuk ${item.sku} sudah mencapai target.`);
+        }
+
+        const qty = await askLoadingQuantity(item, remaining);
+
+        if (!qty) {
+            return;
+        }
+
+        if (target > 0 && loaded + qty > target) {
+            throw new Error(`Qty melebihi target. Sisa yang dapat dimuat: ${remaining}.`);
+        }
+
+        await saveLoadingScan(item, qty);
+
+        const timestamp = new Date();
+
+        loadingRows.push(
+            normalizeLoadingRow({
+                shipmentId: activeShipmentId,
+
+                upc: item.upc,
+
+                sku: item.sku,
+
+                name: item.name,
+
+                qty,
+
+                operator: normalizeOperator(),
+
+                timestamp: timestamp.toISOString(),
+
+                lastUpdate: timestamp.toISOString(),
+            }),
+        );
+
+        todayHistoryRows = loadingRows.filter(isTodayLoadingRow);
+
+        updateLastResult(item, qty, timestamp);
+
+        renderLoadingResult();
+        renderLoadingHistory();
+        updateLoadingState();
+
+        toast(`${item.name} berhasil dimuat ×${qty}.`, "success");
+
+        focusLoadingInput();
+    } catch (error) {
+        toast(error?.message || "Scan Loading gagal.", "error");
+
+        focusLoadingInput();
+    } finally {
+        busy(false);
+    }
+}
+
+function askLoadingQuantity(item, remaining) {
+    return new Promise((resolve) => {
+        const modal = $("modal");
+
+        if (!modal) {
+            resolve(1);
+            return;
+        }
+
+        const max = remaining > 0 ? remaining : "";
+
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+
+                <div
+                    class="modal-card"
+                    role="dialog"
+                    aria-modal="true">
+
+                    <div class="modal-head">
+
+                        <div>
+                            <h3>Konfirmasi Qty</h3>
+
+                            <p>
+                                Pastikan jumlah barang
+                                yang dimuat.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="icon-btn"
+                            data-action="cancel-loading-qty"
+                            aria-label="Tutup">
+                            ×
+                        </button>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="scan-confirm-item">
+
+                            <div
+                                class="scan-confirm-name">
+                                ${esc(item?.name || "-")}
+                            </div>
+
+                            <div
+                                class="scan-confirm-meta">
+                                SKU:
+                                ${esc(item?.sku || "-")}
+                            </div>
+
+                            <div
+                                class="scan-confirm-meta">
+                                UPC:
+                                ${esc(item?.upc || "-")}
+                            </div>
+
+                            ${
+                                remaining > 0
+                                    ? `
+                                        <div
+                                            class="scan-confirm-meta">
+                                            Sisa target:
+                                            <strong>
+                                                ${remaining}
+                                            </strong>
+                                        </div>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+                        <label
+                            class="field-label"
+                            for="loadingQtyInput">
+                            Qty
+                        </label>
+
+                        <input
+                            id="loadingQtyInput"
+                            class="input"
+                            type="number"
+                            min="1"
+                            ${max ? `max="${max}"` : ""}
+                            value="1"
+                            inputmode="numeric"
+                            autocomplete="off">
+
+                        <div
+                            class="modal-actions">
+
+                            <button
+                                id="loadingQtyCancelBtn"
+                                type="button"
+                                class="btn btn-soft">
+                                Batal
+                            </button>
+
+                            <button
+                                id="loadingQtyConfirmBtn"
+                                type="button"
+                                class="btn btn-primary">
+                                Simpan
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+        modal.classList.remove("hidden");
+
+        const input = $("loadingQtyInput");
+
+        const cancel = $("loadingQtyCancelBtn");
+
+        const confirm = $("loadingQtyConfirmBtn");
+
+        let finished = false;
+
+        const close = () => {
+            if (finished) {
+                return;
+            }
+
+            finished = true;
+
+            modal.classList.add("hidden");
+
+            modal.innerHTML = "";
+
+            resolve(0);
+        };
+
+        const submit = () => {
+            if (finished) {
+                return;
+            }
+
+            const value = Number(input?.value || 0);
+
+            if (!Number.isFinite(value) || value <= 0) {
+                toast("Qty harus lebih dari 0.", "warning");
+
+                input?.focus();
+
+                return;
+            }
+
+            if (remaining > 0 && value > remaining) {
+                toast(`Qty maksimal ${remaining}.`, "warning");
+
+                input?.focus();
+
+                return;
+            }
+
+            finished = true;
+
+            modal.classList.add("hidden");
+
+            modal.innerHTML = "";
+
+            resolve(Math.floor(value));
+        };
+
+        cancel?.addEventListener("click", close);
+
+        confirm?.addEventListener("click", submit);
+
+        modal.querySelector('[data-action="cancel-loading-qty"]')?.addEventListener("click", close);
+
+        input?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                submit();
+            }
+
+            if (event.key === "Escape") {
+                event.preventDefault();
+                close();
+            }
+        });
+
+        input?.focus();
+        input?.select();
+    });
+}
+
+function focusLoadingInput() {
+    if (!activeShipmentId) {
+        return;
+    }
+
+    const input = $("loadingScanInput");
+
+    if (!input || input.disabled) {
+        return;
+    }
+
+    setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 50);
+}
+
+function stopLoadingCamera() {
+    loadingCameraRunning = false;
+
+    loadingCameraHandler = null;
+
+    if (window.Quagga && typeof window.Quagga.stop === "function") {
+        try {
+            window.Quagga.stop();
+        } catch {}
+    }
+
+    if (cameraPermissionStream) {
+        for (const track of cameraPermissionStream.getTracks()) {
+            track.stop();
+        }
+
+        cameraPermissionStream = null;
+    }
+
+    const container = $("loadingCameraContainer");
+
+    if (container) {
+        container.innerHTML = "";
+    }
+}
+
+async function openLoadingCamera() {
+    if (!activeShipmentId) {
+        toast("Pilih DPV terlebih dahulu.", "warning");
+
+        return;
+    }
+
+    if (!activeShipment || (getStatus(activeShipment) !== "READY LOADING" && getStatus(activeShipment) !== "LOADING")) {
+        toast("DPV belum siap untuk Loading.", "warning");
+
+        return;
+    }
+
+    if (!window.Quagga) {
+        toast("Scanner kamera belum tersedia.", "error");
+
+        return;
+    }
+
+    stopLoadingCamera();
+
+    const modal = $("modal");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.innerHTML = `
+        <div class="modal-backdrop">
+
+            <div
+                class="modal-card camera-modal"
+                role="dialog"
+                aria-modal="true">
+
+                <div class="modal-head">
+
+                    <div>
+                        <h3>Scan dengan Kamera</h3>
+
+                        <p>
+                            Arahkan kamera ke barcode UPC.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="icon-btn"
+                        data-action="close-loading-camera"
+                        aria-label="Tutup">
+                        ×
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div
+                        id="loadingCameraContainer"
+                        class="camera-container">
+                    </div>
+
+                    <div
+                        class="camera-hint">
+                        Pastikan barcode terlihat jelas
+                        dan pencahayaan cukup.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    modal.classList.remove("hidden");
+
+    modal.querySelector('[data-action="close-loading-camera"]')?.addEventListener("click", () => {
+        stopLoadingCamera();
+        closeLoadingModal();
+    });
+
+    const container = $("loadingCameraContainer");
+
+    if (!container) {
+        return;
+    }
+
+    loadingCameraRunning = true;
+
+    try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            cameraPermissionStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {
+                        ideal: "environment",
+                    },
+                },
+                audio: false,
+            });
+
+            for (const track of cameraPermissionStream.getTracks()) {
+                track.stop();
+            }
+
+            cameraPermissionStream = null;
+        }
+
+        window.Quagga.init(
+            {
+                inputStream: {
+                    type: "LiveStream",
+
+                    target: container,
+
+                    constraints: {
+                        facingMode: "environment",
+                        width: {
+                            min: 640,
+                            ideal: 1280,
+                        },
+                        height: {
+                            min: 480,
+                            ideal: 720,
+                        },
+                    },
+
+                    area: {
+                        top: "20%",
+                        right: "10%",
+                        left: "10%",
+                        bottom: "20%",
+                    },
+                },
+
+                locator: {
+                    patchSize: "medium",
+
+                    halfSample: true,
+                },
+
+                numOfWorkers: Math.max(1, Math.min(4, navigator.hardwareConcurrency || 2)),
+
+                frequency: 10,
+
+                decoder: {
+                    readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"],
+                },
+
+                locate: true,
+            },
+
+            (error) => {
+                if (error) {
+                    loadingCameraRunning = false;
+
+                    toast("Kamera tidak dapat dijalankan.", "error");
+
+                    return;
+                }
+
+                if (!loadingCameraRunning) {
+                    return;
+                }
+
+                window.Quagga.start();
+
+                loadingCameraHandler = (result) => {
+                    if (!loadingCameraRunning) {
+                        return;
+                    }
+
+                    const code = result?.codeResult?.code;
+
+                    if (!code) {
+                        return;
+                    }
+
+                    const value = normalizeUPC(code);
+
+                    if (!value) {
+                        return;
+                    }
+
+                    stopLoadingCamera();
+                    closeLoadingModal();
+
+                    processScan(value);
+                };
+
+                window.Quagga.onDetected(loadingCameraHandler);
+            },
+        );
+    } catch (error) {
+        loadingCameraRunning = false;
+
+        stopLoadingCamera();
+
+        toast(error?.message || "Kamera tidak dapat diakses.", "error");
+    }
+}
+
+async function finishLoading() {
+    if (!activeShipmentId) {
+        toast("Pilih DPV terlebih dahulu.", "warning");
+
+        return;
+    }
+
+    if (!activeShipment) {
+        toast("Data DPV belum tersedia.", "warning");
 
         return;
     }
@@ -1267,18 +1791,364 @@ async function processScan(upc) {
     const status = getStatus(activeShipment);
 
     if (status !== "READY LOADING" && status !== "LOADING") {
-        toast("DPV ini belum siap untuk proses Loading.", true);
+        toast("DPV tidak berada pada status Loading.", "warning");
 
         return;
     }
 
-    if (!/^\d+$/.test(value)) {
-        toast("UPC harus berupa angka.", true);
+    const totals = getLoadingTotals();
 
-        focusLoadingInput();
+    if (totals.target <= 0) {
+        toast("DPV belum memiliki target Qty.", "warning");
 
         return;
     }
+
+    if (totals.loaded < totals.target) {
+        toast(`Loading belum selesai. Masih kurang ${totals.target - totals.loaded} Qty.`, "warning");
+
+        return;
+    }
+
+    const confirmed = await confirmFinishLoading();
+
+    if (!confirmed) {
+        return;
+    }
+
+    busy(true);
+
+    try {
+        const result = await api("finishLoading", {
+            shipmentId: activeShipmentId,
+        });
+
+        if (!result?.success) {
+            throw new Error(result?.message || "Gagal menyelesaikan Loading.");
+        }
+
+        await loadShipments();
+
+        const completedId = activeShipmentId;
+
+        activeShipment = result?.shipment ?? result?.data?.shipment ?? activeShipment;
+
+        if (activeShipment) {
+            activeShipment.status = "SELESAI";
+        }
+
+        activeShipmentId = "";
+
+        clearActiveShipment();
+
+        stopLoadingCamera();
+
+        renderActiveShipmentButton();
+
+        loadingRows = [];
+        todayHistoryRows = [];
+
+        renderLoadingResult();
+        renderLoadingHistory();
+        updateLoadingState();
+
+        toast(`Loading ${completedId} berhasil diselesaikan.`, "success");
+    } catch (error) {
+        toast(error?.message || "Gagal menyelesaikan Loading.", "error");
+    } finally {
+        busy(false);
+    }
+}
+
+function confirmFinishLoading() {
+    return new Promise((resolve) => {
+        const modal = $("modal");
+
+        if (!modal) {
+            resolve(window.confirm("Selesaikan proses Loading?"));
+
+            return;
+        }
+
+        modal.innerHTML = `
+            <div class="modal-backdrop">
+
+                <div
+                    class="modal-card"
+                    role="dialog"
+                    aria-modal="true">
+
+                    <div class="modal-head">
+
+                        <div>
+                            <h3>
+                                Selesaikan Loading?
+                            </h3>
+
+                            <p>
+                                Setelah diselesaikan,
+                                DPV akan berstatus SELESAI.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="icon-btn"
+                            data-action="cancel-finish-loading"
+                            aria-label="Tutup">
+                            ×
+                        </button>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div
+                            class="finish-loading-summary">
+
+                            <div>
+                                <span>
+                                    DPV
+                                </span>
+
+                                <strong>
+                                    ${esc(activeShipmentId)}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Total Loading
+                                </span>
+
+                                <strong>
+                                    ${getLoadingTotals().loaded}
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <div
+                            class="modal-actions">
+
+                            <button
+                                id="cancelFinishLoadingBtn"
+                                type="button"
+                                class="btn btn-soft">
+                                Batal
+                            </button>
+
+                            <button
+                                id="confirmFinishLoadingBtn"
+                                type="button"
+                                class="btn btn-primary">
+                                Selesaikan
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+        modal.classList.remove("hidden");
+
+        let finished = false;
+
+        const close = () => {
+            if (finished) {
+                return;
+            }
+
+            finished = true;
+
+            modal.classList.add("hidden");
+
+            modal.innerHTML = "";
+
+            resolve(false);
+        };
+
+        const confirm = () => {
+            if (finished) {
+                return;
+            }
+
+            finished = true;
+
+            modal.classList.add("hidden");
+
+            modal.innerHTML = "";
+
+            resolve(true);
+        };
+
+        $("cancelFinishLoadingBtn")?.addEventListener("click", close);
+
+        $("confirmFinishLoadingBtn")?.addEventListener("click", confirm);
+
+        modal.querySelector('[data-action="cancel-finish-loading"]')?.addEventListener("click", close);
+    });
+}
+
+export function bindLoading() {
+    prepareLoadingLayout();
+
+    if (window.__loadingGlobalEventsBound) {
+        return;
+    }
+
+    window.__loadingGlobalEventsBound = true;
+
+    window.addEventListener("loading:stop", () => {
+        stopLoadingCamera();
+    });
+
+    window.addEventListener("page:leave", (event) => {
+        const page = event?.detail?.page;
+
+        if (page !== "loading") {
+            stopLoadingCamera();
+        }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            stopLoadingCamera();
+        }
+    });
+}
+
+export async function loadLoading() {
+    prepareLoadingLayout();
+
+    busy(true);
+
+    try {
+        stopLoadingCamera();
+
+        await loadShipments();
+
+        const restored = await restoreActiveShipment();
+
+        if (!restored) {
+            activeShipmentId = "";
+            activeShipment = null;
+
+            loadingRows = [];
+            todayHistoryRows = [];
+
+            clearActiveShipment();
+
+            renderActiveShipmentButton();
+            renderLoadingResult();
+            renderLoadingHistory();
+            updateLoadingState();
+        }
+
+        if (activeShipmentId && activeShipment) {
+            const status = getStatus(activeShipment);
+
+            if (status !== "READY LOADING" && status !== "LOADING") {
+                activeShipmentId = "";
+                activeShipment = null;
+
+                loadingRows = [];
+                todayHistoryRows = [];
+
+                clearActiveShipment();
+
+                renderActiveShipmentButton();
+                renderLoadingResult();
+                renderLoadingHistory();
+                updateLoadingState();
+            }
+        }
+
+        if (!activeShipmentId) {
+            updateLastResult(
+                {
+                    name: "Belum ada scan",
+                    sku: "-",
+                    upc: "-",
+                },
+                0,
+                new Date(),
+            );
+
+            const lastResult = $("loadingLastResult");
+
+            if (lastResult) {
+                lastResult.innerHTML = `
+                    <div class="last-title">
+                        HASIL SCAN TERAKHIR
+                    </div>
+
+                    <div class="last-name">
+                        Belum ada scan
+                    </div>
+
+                    <div class="last-meta">
+                        Pilih DPV lalu mulai scan.
+                    </div>
+                `;
+            }
+        }
+
+        updateLoadingState();
+    } catch (error) {
+        toast(error?.message || "Gagal memuat halaman Loading.", "error");
+
+        activeShipmentId = "";
+        activeShipment = null;
+
+        loadingRows = [];
+        todayHistoryRows = [];
+
+        clearActiveShipment();
+
+        renderActiveShipmentButton();
+        renderLoadingResult();
+        renderLoadingHistory();
+        updateLoadingState();
+    } finally {
+        busy(false);
+    }
+}
+
+window.addEventListener("loading:refresh", async () => {
+    if (!activeShipmentId) {
+        return;
+    }
+
+    try {
+        await refreshLoadingData();
+    } catch (error) {
+        toast(error?.message || "Gagal memperbarui Loading.", "error");
+    }
+});
+
+window.addEventListener("loading:reset", () => {
+    stopLoadingCamera();
+
+    activeShipmentId = "";
+    activeShipment = null;
+
+    loadingRows = [];
+    todayHistoryRows = [];
+
+    lastDetected = "";
+    lastDetectedAt = 0;
+
+    clearActiveShipment();
+
+    renderActiveShipmentButton();
+    renderLoadingResult();
+    renderLoadingHistory();
+    updateLoadingState();
 
     const input = $("loadingScanInput");
 
@@ -1286,794 +2156,25 @@ async function processScan(upc) {
         input.value = "";
     }
 
-    try {
-        busy(true);
+    const lastResult = $("loadingLastResult");
 
-        const item = await lookupUPC(value);
+    if (lastResult) {
+        lastResult.innerHTML = `
+                <div class="last-title">
+                    HASIL SCAN TERAKHIR
+                </div>
 
-        if (!item) {
-            throw new Error("UPC tidak ditemukan.");
-        }
+                <div class="last-name">
+                    Belum ada scan
+                </div>
 
-        showLoadingConfirmModal(item);
-    } catch (error) {
-        console.error("Loading lookup error:", error);
-
-        renderLastError(error?.message || "UPC tidak ditemukan.");
-
-        toast(error?.message || "UPC tidak ditemukan.", true);
-    } finally {
-        busy(false);
+                <div class="last-meta">
+                    Pilih DPV lalu mulai scan.
+                </div>
+            `;
     }
-}
+});
 
-function showLoadingConfirmModal(item) {
-    const modal = $("modal");
-
-    const content = $("modalContent");
-
-    if (!modal || !content) {
-        toast("Modal tidak ditemukan.", true);
-
-        return;
-    }
-
-    const upc = String(item?.upc ?? item?.UPC ?? "").trim();
-
-    const sku = String(item?.sku ?? item?.SKU ?? "-").trim();
-
-    const name = String(item?.name ?? item?.NAMA_BARANG ?? "-").trim();
-
-    content.innerHTML = `
-        <div class="modal-head">
-
-            <h3>
-                Konfirmasi Barang
-            </h3>
-
-            <button
-                class="close"
-                data-action="close-modal"
-                aria-label="Tutup"
-                type="button">
-
-                ×
-
-            </button>
-
-        </div>
-
-        <div class="scan-confirm">
-
-            <div class="scan-confirm-row">
-
-                <span>
-                    UPC
-                </span>
-
-                <strong>
-                    ${esc(upc)}
-                </strong>
-
-            </div>
-
-            <div class="scan-confirm-row">
-
-                <span>
-                    SKU
-                </span>
-
-                <strong>
-                    ${esc(sku)}
-                </strong>
-
-            </div>
-
-            <div class="scan-confirm-row">
-
-                <span>
-                    Nama Barang
-                </span>
-
-                <strong>
-                    ${esc(name)}
-                </strong>
-
-            </div>
-
-            <div class="scan-confirm-qty">
-
-                <label for="loadingQtyInput">
-                    QTY
-                </label>
-
-                <input
-                    id="loadingQtyInput"
-                    class="input"
-                    type="number"
-                    min="1"
-                    step="1"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    placeholder="Masukkan jumlah"
-                    value="1">
-
-            </div>
-
-            <div class="scan-confirm-actions">
-
-                <button
-                    type="button"
-                    class="btn btn-secondary"
-                    data-action="close-modal">
-
-                    Batal
-
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-primary"
-                    id="saveLoadingScanBtn">
-
-                    Simpan
-
-                </button>
-
-            </div>
-
-        </div>
-    `;
-
-    modal.classList.remove("hidden");
-
-    const qtyInput = $("loadingQtyInput");
-
-    const saveButton = $("saveLoadingScanBtn");
-
-    qtyInput?.focus();
-    qtyInput?.select();
-
-    qtyInput?.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") {
-            return;
-        }
-
-        event.preventDefault();
-
-        saveButton?.click();
-    });
-
-    saveButton?.addEventListener("click", async () => {
-        const qty = Number(qtyInput?.value);
-
-        if (!Number.isInteger(qty) || qty <= 0) {
-            toast("QTY harus berupa angka bulat lebih dari 0.", true);
-
-            qtyInput?.focus();
-            qtyInput?.select();
-
-            return;
-        }
-
-        await saveLoadingScan(activeShipmentId, upc, qty, item);
-    });
-}
-
-async function saveLoadingScan(shipmentId, upc, qty, item) {
-    try {
-        busy(true);
-
-        if (!shipmentId) {
-            throw new Error("DPV belum dipilih.");
-        }
-
-        const response = await api("loadingScan", {
-            shipmentId,
-            upc,
-            qty,
-        });
-
-        if (!response?.success) {
-            throw new Error(response?.message || "Gagal menyimpan Loading.");
-        }
-
-        closeLoadingModal();
-
-        await refreshActiveShipment();
-
-        const responseItem = response.item || response.data?.item || item;
-
-        const resultRow = {
-            shipmentId,
-
-            upc: responseItem?.upc || responseItem?.UPC || upc,
-
-            sku: responseItem?.sku || responseItem?.SKU || item?.sku || item?.SKU || "-",
-
-            name: responseItem?.name || responseItem?.NAMA_BARANG || item?.name || item?.NAMA_BARANG || "-",
-
-            qty: Number(qty) || 1,
-
-            operator: response.operator || response.petugas || responseItem?.operator || state.me?.name || "-",
-
-            timestamp: response.timestamp || response.lastUpdate || responseItem?.timestamp || responseItem?.lastUpdate || new Date(),
-        };
-
-        todayHistoryRows = [resultRow, ...(Array.isArray(todayHistoryRows) ? todayHistoryRows : [])];
-
-        renderHistory();
-
-        renderLastResult(resultRow);
-
-        toast(`✓ ${resultRow.name} · Qty ${resultRow.qty}`);
-    } catch (error) {
-        console.error("Save loading error:", error);
-
-        toast(error?.message || "Gagal menyimpan Loading.", true);
-    } finally {
-        busy(false);
-
-        focusLoadingInput();
-    }
-}
-
-async function refreshActiveShipment() {
-    if (!activeShipmentId) {
-        loadingRows = [];
-
-        renderLoadingPage();
-
-        return;
-    }
-
-    const response = await api("getShipment", {
-        shipmentId: activeShipmentId,
-    });
-
-    if (!response?.success) {
-        throw new Error(response?.message || "Gagal mengambil DPV.");
-    }
-
-    const shipment = response.shipment || response.data?.shipment || null;
-
-    if (!shipment) {
-        throw new Error("Data DPV tidak valid.");
-    }
-
-    activeShipment = shipment;
-
-    loadingRows = getLoadingRows(response);
-
-    saveActiveShipment();
-
-    renderLoadingPage();
-}
-
-async function finishLoading() {
-    if (!activeShipmentId) {
-        toast("Pilih DPV terlebih dahulu.", true);
-
-        return;
-    }
-
-    const status = getStatus(activeShipment);
-
-    if (status !== "READY LOADING" && status !== "LOADING") {
-        toast("DPV ini belum siap untuk proses Loading.", true);
-
-        return;
-    }
-
-    if (!loadingRows.length) {
-        toast("Belum ada barang yang dimuat.", true);
-
-        return;
-    }
-
-    const result = await Swal.fire({
-        title: "Selesaikan Loading?",
-
-        text: "Setelah selesai, data Loading akan dikirim ke proses Matching.",
-
-        icon: "question",
-
-        showCancelButton: true,
-
-        confirmButtonText: "Ya, Selesaikan",
-
-        cancelButtonText: "Batal",
-    });
-
-    if (!result.isConfirmed) {
-        focusLoadingInput();
-
-        return;
-    }
-
-    try {
-        busy(true);
-
-        const response = await api("finishLoading", {
-            shipmentId: activeShipmentId,
-        });
-
-        if (!response?.success) {
-            throw new Error(response?.message || "Gagal menyelesaikan Loading.");
-        }
-
-        await stopLoadingCamera();
-
-        activeShipment = response.shipment || response.data?.shipment || activeShipment;
-
-        await refreshActiveShipment();
-
-        await loadShipments();
-
-        await loadTodayHistory();
-
-        renderLoadingPage();
-
-        toast("✓ Loading selesai. DPV siap Matching.");
-    } catch (error) {
-        console.error("Finish loading error:", error);
-
-        toast(error?.message || "Gagal menyelesaikan Loading.", true);
-    } finally {
-        busy(false);
-
-        focusLoadingInput();
-    }
-}
-
-function getQuagga() {
-    return window.Quagga || window.quagga || null;
-}
-
-async function requestCameraPermission() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Browser tidak mendukung akses kamera.");
-    }
-
-    if (!window.isSecureContext) {
-        throw new Error("Kamera hanya dapat digunakan melalui HTTPS.");
-    }
-
-    if (cameraPermissionStream) {
-        return true;
-    }
-
-    cameraPermissionStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-            facingMode: {
-                ideal: "environment",
-            },
-        },
-        audio: false,
-    });
-
-    return true;
-}
-
-async function releaseCameraPermissionStream() {
-    if (!cameraPermissionStream) {
-        return;
-    }
-
-    try {
-        cameraPermissionStream.getTracks().forEach((track) => {
-            track.stop();
-        });
-    } catch (error) {}
-
-    cameraPermissionStream = null;
-}
-
-function cameraPermissionMessage(error) {
-    if (error?.name === "NotAllowedError") {
-        return "Akses kamera ditolak. Izinkan kamera untuk website ini melalui ikon kamera di address bar browser, lalu coba lagi.";
-    }
-
-    if (error?.name === "NotFoundError") {
-        return "Kamera tidak ditemukan pada perangkat.";
-    }
-
-    if (error?.name === "NotReadableError") {
-        return "Kamera sedang digunakan aplikasi lain. Tutup aplikasi yang menggunakan kamera lalu coba lagi.";
-    }
-
-    if (error?.name === "SecurityError") {
-        return "Browser tidak mengizinkan akses kamera pada halaman ini.";
-    }
-
-    return error?.message || "Kamera tidak dapat digunakan.";
-}
-
-function cameraMarkup() {
-    return `
-        <div class="modal-head">
-
-            <h3>
-                Scan dengan Kamera
-            </h3>
-
-            <button
-                class="close"
-                data-action="close-modal"
-                aria-label="Tutup"
-                type="button">
-
-                ×
-
-            </button>
-
-        </div>
-
-        <div class="camera-box">
-
-            <div
-                id="loadingQuaggaReader"
-                class="quagga-reader">
-            </div>
-
-            <div class="barcode-overlay"></div>
-
-            <div
-                class="barcode-frame"
-                aria-hidden="true">
-
-                <span
-                    class="barcode-corner tl">
-                </span>
-
-                <span
-                    class="barcode-corner tr">
-                </span>
-
-                <span
-                    class="barcode-corner bl">
-                </span>
-
-                <span
-                    class="barcode-corner br">
-                </span>
-
-                <span
-                    class="barcode-laser">
-                </span>
-
-            </div>
-
-        </div>
-
-        <div
-            class="camera-status"
-            id="loadingCameraStatus">
-
-            Meminta akses kamera...
-
-        </div>
-
-        <div class="camera-help">
-
-            Posisikan barcode mendatar di dalam
-            kotak hijau.
-
-        </div>
-    `;
-}
-
-function fixCameraDisplay() {
-    const box = document.querySelector(".camera-box");
-
-    if (!box) {
-        return;
-    }
-
-    const video = box.querySelector("video");
-
-    const canvas = box.querySelector("canvas");
-
-    if (video) {
-        video.style.width = "100%";
-
-        video.style.height = "100%";
-
-        video.style.objectFit = "cover";
-
-        video.style.objectPosition = "center center";
-
-        video.setAttribute("playsinline", "true");
-
-        video.setAttribute("autoplay", "true");
-
-        video.muted = true;
-    }
-
-    if (canvas) {
-        canvas.style.position = "absolute";
-
-        canvas.style.inset = "0";
-
-        canvas.style.width = "100%";
-
-        canvas.style.height = "100%";
-
-        canvas.style.pointerEvents = "none";
-    }
-}
-
-async function openLoadingCamera() {
-    if (!activeShipmentId) {
-        toast("Pilih DPV terlebih dahulu.", true);
-
-        return;
-    }
-
-    const status = getStatus(activeShipment);
-
-    if (status !== "READY LOADING" && status !== "LOADING") {
-        toast("DPV ini belum siap untuk proses Loading.", true);
-
-        return;
-    }
-
-    const Quagga = getQuagga();
-
-    if (!Quagga) {
-        toast("Scanner kamera belum termuat.", true);
-
-        return;
-    }
-
-    await stopLoadingCamera();
-
-    const modal = $("modal");
-
-    const content = $("modalContent");
-
-    if (!modal || !content) {
-        toast("Modal tidak ditemukan.", true);
-
-        return;
-    }
-
-    content.innerHTML = cameraMarkup();
-
-    modal.classList.remove("hidden");
-
-    const cameraStatus = $("loadingCameraStatus");
-
-    try {
-        await requestCameraPermission();
-
-        if (cameraStatus) {
-            cameraStatus.textContent = "Menyalakan kamera...";
-        }
-
-        const constraints = {
-            width: {
-                min: 640,
-                ideal: 1280,
-            },
-
-            height: {
-                min: 480,
-                ideal: 720,
-            },
-
-            facingMode: {
-                ideal: "environment",
-            },
-        };
-
-        const config = {
-            inputStream: {
-                name: "Loading Camera",
-
-                type: "LiveStream",
-
-                target: document.querySelector("#loadingQuaggaReader"),
-
-                constraints,
-
-                area: {
-                    top: "5%",
-
-                    right: "5%",
-
-                    left: "5%",
-
-                    bottom: "5%",
-                },
-            },
-
-            locate: true,
-
-            locator: {
-                patchSize: "medium",
-
-                halfSample: false,
-            },
-
-            frequency: 10,
-
-            decoder: {
-                readers: ["upc_reader", "upc_e_reader", "ean_reader", "ean_8_reader"],
-
-                multiple: false,
-            },
-
-            numOfWorkers: Math.max(1, Math.min(4, navigator.hardwareConcurrency || 2)),
-        };
-
-        loadingCameraRunning = true;
-
-        state.cameraRunning = true;
-
-        loadingCameraHandler = async (result) => {
-            if (!loadingCameraRunning) {
-                return;
-            }
-
-            const code = String(result?.codeResult?.code || "").trim();
-
-            if (!/^\d{6,13}$/.test(code)) {
-                return;
-            }
-
-            const now = Date.now();
-
-            if (code === lastDetected && now - lastDetectedAt < 1800) {
-                return;
-            }
-
-            lastDetected = code;
-
-            lastDetectedAt = now;
-
-            loadingCameraRunning = false;
-
-            state.cameraRunning = false;
-
-            if (cameraStatus) {
-                cameraStatus.textContent = `Barcode terdeteksi: ${code}`;
-            }
-
-            await stopLoadingCamera();
-
-            closeLoadingModal();
-
-            await processScan(code);
-        };
-
-        Quagga.onDetected(loadingCameraHandler);
-
-        await new Promise((resolve, reject) => {
-            Quagga.init(config, (error) => {
-                if (error) {
-                    reject(error);
-
-                    return;
-                }
-
-                resolve();
-            });
-        });
-
-        Quagga.start();
-
-        setTimeout(fixCameraDisplay, 200);
-
-        setTimeout(fixCameraDisplay, 700);
-
-        if (cameraStatus) {
-            cameraStatus.textContent = "Kamera aktif · arahkan barcode ke kotak hijau";
-        }
-    } catch (error) {
-        console.error("Loading camera error:", error);
-
-        loadingCameraRunning = false;
-
-        state.cameraRunning = false;
-
-        await stopLoadingCamera();
-
-        closeLoadingModal();
-
-        await releaseCameraPermissionStream();
-
-        toast(cameraPermissionMessage(error), true);
-    }
-}
-
-async function stopLoadingCamera() {
-    const Quagga = getQuagga();
-
-    loadingCameraRunning = false;
-
-    state.cameraRunning = false;
-
-    if (Quagga) {
-        try {
-            if (loadingCameraHandler) {
-                Quagga.offDetected(loadingCameraHandler);
-            }
-        } catch (error) {}
-
-        try {
-            Quagga.stop();
-        } catch (error) {}
-    }
-
-    document.querySelectorAll(".camera-box video").forEach((video) => {
-        try {
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach((track) => {
-                    track.stop();
-                });
-            }
-        } catch (error) {}
-    });
-
-    loadingCameraHandler = null;
-
-    await releaseCameraPermissionStream();
-}
-
-function closeLoadingModal() {
+window.addEventListener("beforeunload", () => {
     stopLoadingCamera();
-
-    const modal = $("modal");
-
-    const content = $("modalContent");
-
-    if (modal) {
-        modal.classList.add("hidden");
-    }
-
-    if (content) {
-        content.innerHTML = "";
-    }
-
-    setTimeout(focusLoadingInput, 120);
-}
-
-function focusLoadingInput() {
-    const input = $("loadingScanInput");
-
-    if (!input) {
-        return;
-    }
-
-    const modal = $("modal");
-
-    if (modal && !modal.classList.contains("hidden")) {
-        return;
-    }
-
-    if (input.disabled) {
-        return;
-    }
-
-    setTimeout(() => {
-        const currentModal = $("modal");
-
-        if (currentModal && !currentModal.classList.contains("hidden")) {
-            return;
-        }
-
-        if (input.disabled) {
-            return;
-        }
-
-        input.focus();
-        input.select();
-    }, 50);
-}
-
-export function bindLoading() {
-    prepareLoadingLayout();
-}
-
-export { processScan, finishLoading };
+});

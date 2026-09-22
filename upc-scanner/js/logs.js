@@ -15,7 +15,6 @@ export async function loadLog() {
         $("logPetugas").innerHTML = '<option value="">Semua petugas</option>' + names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
         $("logPetugas").value = names.includes(selected) ? selected : "";
     } catch (e) {
-        console.error(e);
         toast(e.message || "Gagal memuat log.", true);
     } finally {
         busy(false);

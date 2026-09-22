@@ -1,133 +1,189 @@
-import { state, $, busy, toast, esc } from "./state.js";
+import { state, $, busy, toast, esc, closeModal } from "./state.js";
+
 import { api } from "./api.js";
-import { closeModal } from "./scanner.js";
+
+let users = [];
 
 export async function loadUsers() {
+    if (state.me?.role !== "ADMIN") {
+        return;
+    }
+
     busy(true);
 
     try {
         const r = await api("getUsers");
 
         if (!r.success) {
-            throw new Error(r.message || "Gagal memuat petugas.");
+            throw new Error(r.message || "Gagal memuat data pengguna.");
         }
 
-        state.userRows = r.rows || [];
+        users = Array.isArray(r.rows) ? r.rows : Array.isArray(r.users) ? r.users : [];
+
         renderUsers();
     } catch (e) {
-        console.error(e);
-        toast(e.message || "Gagal memuat petugas.", true);
+        toast(e.message || "Gagal memuat data pengguna.", true);
     } finally {
         busy(false);
     }
 }
 
 function renderUsers() {
-    const rows = state.userRows || [];
+    const container = $("userRows");
 
-    $("userRows").innerHTML = rows.length
-        ? `
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Nama Petugas</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows
-                        .map(
-                            (x) => `
-                        <tr>
-                            <td><b>${esc(x.username)}</b></td>
-                            <td>${esc(x.name)}</td>
-                            <td>${esc(x.role)}</td>
-                            <td>${esc(x.status)}</td>
-                            <td>
-                                <button
-                                    class="btn btn-soft"
-                                    data-edit-user="${esc(x.id)}"
-                                >
-                                    Edit
-                                </button>
-                            </td>
-                        </tr>
-                    `,
-                        )
-                        .join("")}
-                </tbody>
-            </table>
-        `
-        : '<div class="empty">Belum ada petugas.</div>';
+    if (!container) {
+        return;
+    }
+
+    if (!users.length) {
+        container.innerHTML = `
+            <div class="empty">
+                Data pengguna kosong.
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Nama Petugas</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${users
+                    .map((user) => {
+                        const username = String(user.username || "").trim();
+
+                        const name = String(user.name || "").trim();
+
+                        const role = String(user.role || "").trim();
+
+                        const status = user.active === false ? "Nonaktif" : "Aktif";
+
+                        const isCurrentUser = username === String(state.me?.username || "").trim();
+
+                        return `
+                            <tr>
+                                <td>
+                                    <b>${esc(username)}</b>
+                                </td>
+
+                                <td>
+                                    ${esc(name)}
+                                </td>
+
+                                <td>
+                                    ${esc(role)}
+                                </td>
+
+                                <td>
+                                    ${esc(status)}
+                                </td>
+
+                                <td>
+                                    ${
+                                        !isCurrentUser
+                                            ? `
+                                                <button
+                                                    class="btn btn-danger"
+                                                    type="button"
+                                                    data-user-action="delete"
+                                                    data-username="${esc(username)}"
+                                                >
+                                                    Hapus
+                                                </button>
+                                            `
+                                            : ""
+                                    }
+                                </td>
+                            </tr>
+                        `;
+                    })
+                    .join("")}
+            </tbody>
+        </table>
+    `;
 }
 
-export function openUser(id = "") {
-    /*
-     * Kalau id cocok dengan user yang ada = EDIT.
-     * Kalau tidak ada = TAMBAH USER BARU.
-     */
-    const existing = state.userRows.find((x) => String(x.id || "") === String(id || ""));
+export function openUser() {
+    const modal = $("modal");
+    const content = $("modalContent");
 
-    /*
-     * PENTING:
-     * Untuk user baru, ID HARUS benar-benar kosong.
-     */
-    const userId = existing ? String(existing.id || "") : "";
+    if (!modal || !content) {
+        return;
+    }
 
-    console.log("[USER FORM]", existing ? "EDIT" : "TAMBAH", "id =", JSON.stringify(userId));
-
-    $("modalContent").innerHTML = `
+    content.innerHTML = `
         <div class="modal-head">
-            <h3>${existing ? "Edit Petugas" : "Tambah Petugas"}</h3>
+            <h3>Tambah Petugas</h3>
 
             <button
                 class="close"
                 data-action="close-modal"
                 type="button"
-            >×</button>
+                aria-label="Tutup"
+            >
+                ×
+            </button>
         </div>
 
-        <label>Username</label>
+        <label for="uUsername">
+            Username
+        </label>
+
         <input
-            id="uUser"
+            id="uUsername"
             class="input"
-            value="${esc(existing?.username || "")}"
+            type="text"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
         >
 
-        <label>Nama Petugas</label>
+        <label for="uName">
+            Nama
+        </label>
+
         <input
             id="uName"
             class="input"
-            value="${esc(existing?.name || "")}"
+            type="text"
+            autocomplete="off"
         >
 
-        <label>Password ${existing ? "(kosong = tetap)" : ""}</label>
+        <label for="uPassword">
+            Password
+        </label>
+
         <input
-            id="uPass"
+            id="uPassword"
             class="input"
             type="password"
+            autocomplete="new-password"
         >
 
-        <label>Role</label>
-        <select id="uRole" class="input">
-            <option ${existing?.role === "PETUGAS" ? "selected" : ""}>
+        <label for="uRole">
+            Role
+        </label>
+
+        <select
+            id="uRole"
+            class="input"
+        >
+            <option value="PETUGAS">
                 PETUGAS
             </option>
-            <option ${existing?.role === "ADMIN" ? "selected" : ""}>
-                ADMIN
-            </option>
-        </select>
 
-        <label>Status</label>
-        <select id="uStatus" class="input">
-            <option ${existing?.status === "AKTIF" ? "selected" : ""}>
-                AKTIF
-            </option>
-            <option ${existing?.status === "NONAKTIF" ? "selected" : ""}>
-                NONAKTIF
+            <option value="ADMIN">
+                ADMIN
             </option>
         </select>
 
@@ -140,59 +196,108 @@ export function openUser(id = "") {
         </button>
     `;
 
-    $("modal").classList.remove("hidden");
+    modal.classList.remove("hidden");
 
-    $("saveUserBtn").addEventListener("click", () => saveUser(userId));
+    $("saveUserBtn")?.addEventListener("click", saveUser);
 
-    setTimeout(() => $("uUser").focus(), 100);
+    setTimeout(() => {
+        $("uUsername")?.focus();
+    }, 100);
 }
 
-async function saveUser(id) {
+async function saveUser() {
+    const username = $("uUsername")?.value.trim() || "";
+
+    const name = $("uName")?.value.trim() || "";
+
+    const password = $("uPassword")?.value || "";
+
+    const role = $("uRole")?.value || "PETUGAS";
+
+    if (!username || !name || !password) {
+        toast("Username, nama, dan password wajib diisi.", true);
+
+        return;
+    }
+
     busy(true);
 
     try {
-        const payload = {
-            /*
-             * Untuk TAMBAH, ini akan selalu ''.
-             * Untuk EDIT, berisi ID user yang benar.
-             */
-            id: String(id || ""),
-
-            username: $("uUser").value.trim(),
-            name: $("uName").value.trim(),
-            password: $("uPass").value,
-            role: $("uRole").value,
-            status: $("uStatus").value,
-        };
-
-        console.log("[SAVE USER] payload:", payload);
-
-        const r = await api("saveUser", payload);
+        const r = await api("saveUser", {
+            username,
+            name,
+            password,
+            role,
+        });
 
         if (!r.success) {
-            throw new Error(r.message || "Gagal menyimpan petugas.");
+            throw new Error(r.message || "Gagal menyimpan pengguna.");
         }
 
         closeModal();
 
-        toast(r.message || "Petugas tersimpan.");
+        toast(r.message || "Pengguna berhasil disimpan.");
 
         await loadUsers();
     } catch (e) {
-        console.error(e);
-
-        toast(e.message || "Gagal menyimpan petugas.", true);
+        toast(e.message || "Gagal menyimpan pengguna.", true);
     } finally {
         busy(false);
     }
 }
 
 export function bindUserActions() {
-    $("userRows").addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-edit-user]");
+    const container = $("userRows");
 
-        if (btn) {
-            openUser(btn.dataset.editUser);
+    if (!container) {
+        return;
+    }
+
+    container.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-user-action]");
+
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.userAction;
+
+        const username = button.dataset.username;
+
+        if (action !== "delete" || !username) {
+            return;
+        }
+
+        if (username === String(state.me?.username || "").trim()) {
+            toast("Akun yang sedang digunakan tidak dapat dihapus.", true);
+
+            return;
+        }
+
+        const confirmed = window.confirm(`Hapus pengguna "${username}"?`);
+
+        if (!confirmed) {
+            return;
+        }
+
+        busy(true);
+
+        try {
+            const r = await api("deleteUser", {
+                username,
+            });
+
+            if (!r.success) {
+                throw new Error(r.message || "Gagal menghapus pengguna.");
+            }
+
+            toast(r.message || "Pengguna berhasil dihapus.");
+
+            await loadUsers();
+        } catch (e) {
+            toast(e.message || "Gagal menghapus pengguna.", true);
+        } finally {
+            busy(false);
         }
     });
 }

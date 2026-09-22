@@ -4,67 +4,76 @@ import { api } from "./api.js";
 export function showLogin() {
     $("loginView").classList.remove("hidden");
     $("appView").classList.add("hidden");
-    setTimeout(() => $("loginUser")?.focus(), 50);
+
+    window.setTimeout(() => {
+        $("loginUser")?.focus();
+    }, 50);
 }
 
-export function enterApp(data) {
+export function enterApp() {
     $("loginView").classList.add("hidden");
     $("appView").classList.remove("hidden");
 
-    if ($("sidebarUserName")) {
-        $("sidebarUserName").textContent = state.me?.name || state.me?.username || "";
-    }
+    $("sidebarUserName").textContent = state.me?.name || state.me?.username || "";
 
-    if ($("sidebarUserRole")) {
-        $("sidebarUserRole").textContent = state.me?.role || "";
-    }
+    $("sidebarUserRole").textContent = state.me?.role || "";
 
-    document.querySelectorAll(".admin-only").forEach((el) => {
-        el.classList.toggle("hidden", state.me?.role !== "ADMIN");
+    document.querySelectorAll(".admin-only").forEach((element) => {
+        element.classList.toggle("hidden", state.me?.role !== "ADMIN");
     });
 }
 
 export async function login() {
+    const username = $("loginUser").value.trim();
+    const password = $("loginPass").value;
+
     $("loginError").classList.add("hidden");
+
+    if (!username || !password) {
+        $("loginError").textContent = "Username dan password wajib diisi.";
+
+        $("loginError").classList.remove("hidden");
+
+        return;
+    }
+
     busy(true);
 
     try {
-        const r = await api(
+        const response = await api(
             "login",
             {
-                username: $("loginUser").value,
-                password: $("loginPass").value,
+                username,
+                password,
             },
             false,
         );
 
-        if (!r.success) {
-            $("loginError").textContent = r.message || "Login gagal.";
-            $("loginError").classList.remove("hidden");
-            return;
+        if (!response?.success) {
+            throw new Error(response?.message || "Login gagal.");
         }
 
-        setToken(r.token);
-        state.me = r.user;
+        setToken(response.token);
+        state.me = response.user;
 
-        const data = await api("getAppData");
+        const appData = await api("getAppData");
 
-        if (!data.success) {
-            throw new Error(data.message || "Gagal memuat aplikasi.");
+        if (!appData?.success) {
+            throw new Error(appData?.message || "Gagal memuat aplikasi.");
         }
 
         $("loginPass").value = "";
 
-        enterApp(data);
+        enterApp();
 
         window.dispatchEvent(
             new CustomEvent("app:ready", {
-                detail: data,
+                detail: appData,
             }),
         );
-    } catch (e) {
-        console.error(e);
-        $("loginError").textContent = e.message || "Tidak dapat terhubung ke server.";
+    } catch (error) {
+        $("loginError").textContent = error?.message || "Tidak dapat terhubung ke server.";
+
         $("loginError").classList.remove("hidden");
     } finally {
         busy(false);
@@ -76,12 +85,10 @@ export async function logout(silent = false) {
         if (state.token) {
             await api("logout");
         }
-    } catch (_) {}
+    } catch {}
 
     setToken("");
     state.me = null;
-
-    window.dispatchEvent(new Event("scanner:stop"));
 
     $("appView").classList.add("hidden");
     $("loginView").classList.remove("hidden");
@@ -89,6 +96,10 @@ export async function logout(silent = false) {
     if (!silent) {
         toast("Anda telah keluar.");
     }
+
+    window.setTimeout(() => {
+        $("loginUser")?.focus();
+    }, 50);
 }
 
 export async function startSession() {
@@ -100,26 +111,28 @@ export async function startSession() {
     busy(true);
 
     try {
-        const r = await api("getAppData");
+        const response = await api("getAppData");
 
-        if (!r.success) {
-            throw new Error(r.message);
+        if (!response?.success) {
+            throw new Error(response?.message || "Sesi tidak valid.");
         }
 
-        state.me = r.user;
+        state.me = response.user;
 
-        enterApp(r);
+        enterApp();
 
         window.dispatchEvent(
             new CustomEvent("app:ready", {
-                detail: r,
+                detail: response,
             }),
         );
 
         return true;
-    } catch (e) {
+    } catch {
         setToken("");
+        state.me = null;
         showLogin();
+
         return false;
     } finally {
         busy(false);

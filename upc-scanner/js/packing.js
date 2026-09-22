@@ -1,4 +1,4 @@
-import { state, $, busy, toast } from "./state.js";
+import { state, $, busy, toast, esc } from "./state.js";
 import { api } from "./api.js";
 
 let shipments = [];
@@ -13,15 +13,6 @@ let lastDetectedAt = 0;
 let packingCameraRunning = false;
 let packingCameraHandler = null;
 let cameraPermissionStream = null;
-
-function esc(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
 
 function getShipmentId(row) {
     return String(row?.shipmentId ?? row?.SHIPMENT_ID ?? row?.id ?? "").trim();
@@ -239,30 +230,6 @@ function timestampHtml(value) {
     `;
 }
 
-function isTodayRow(row) {
-    const timestamp = String(row?.timestamp ?? row?.TIMESTAMP ?? row?.lastUpdate ?? row?.LAST_UPDATE ?? "").trim();
-
-    if (!timestamp) {
-        return false;
-    }
-
-    const today = getTodayDisplay();
-
-    if (timestamp.startsWith(today)) {
-        return true;
-    }
-
-    const parsed = parseTimestamp(timestamp);
-
-    if (!parsed) {
-        return false;
-    }
-
-    const now = new Date();
-
-    return parsed.getFullYear() === now.getFullYear() && parsed.getMonth() === now.getMonth() && parsed.getDate() === now.getDate();
-}
-
 function getShipmentRows(result) {
     if (Array.isArray(result?.rows)) {
         return result.rows;
@@ -290,7 +257,7 @@ function renderActiveShipmentButton() {
         return;
     }
 
-    button.textContent = activeShipmentId ? activeShipmentId : "Pilih DPV";
+    button.textContent = activeShipmentId || "Pilih DPV";
 }
 
 function preparePackingLayout() {
@@ -306,70 +273,49 @@ function preparePackingLayout() {
 
     page.innerHTML = `
         <div class="page-head page-head-with-action">
-
             <div>
-
-                <h2>
-                    Packing
-                </h2>
+                <h2>Packing</h2>
 
                 <p>
                     Scan barang yang akan dikirim.
                 </p>
-
             </div>
 
             <button
                 id="packingChooseShipmentBtn"
                 class="btn btn-soft page-head-action"
                 type="button">
-
                 Pilih DPV
-
             </button>
-
         </div>
 
         <div class="packing-top-grid">
-
             <section class="panel packing-scanner-card">
-
                 <div class="packing-scanner-head">
-
                     <div class="section-title">
                         Scanner
                     </div>
 
                     <div class="scanner-status">
-
                         <span class="dot"></span>
-
                         Scanner Ready
-
                     </div>
-
                 </div>
 
                 <div class="scan-actions">
-
                     <button
                         id="packingCameraBtn"
                         class="btn btn-primary"
                         type="button">
-
                         Kamera
-
                     </button>
 
                     <button
                         id="packingManualFocusBtn"
                         class="btn btn-soft"
                         type="button">
-
                         Scanner
-
                     </button>
-
                 </div>
 
                 <input
@@ -381,16 +327,13 @@ function preparePackingLayout() {
                     aria-label="UPC Packing">
 
                 <div class="hint">
-
                     Scanner USB/Bluetooth dapat digunakan melalui
                     input ini. Barcode + Enter akan langsung diproses.
-
                 </div>
 
                 <div
                     id="packingLastResult"
                     class="last">
-
                     <div class="last-title">
                         HASIL SCAN TERAKHIR
                     </div>
@@ -402,13 +345,10 @@ function preparePackingLayout() {
                     <div class="last-meta">
                         Pilih DPV lalu mulai scan.
                     </div>
-
                 </div>
-
             </section>
 
             <section class="panel packing-history-card">
-
                 <div class="section-title">
                     Riwayat Scan
                 </div>
@@ -417,33 +357,23 @@ function preparePackingLayout() {
                     id="packingHistoryRows"
                     class="table-wrap">
                 </div>
-
             </section>
-
         </div>
 
         <section class="panel packing-result-card">
-
             <div class="packing-result-head">
-
                 <div>
-
                     <div
                         id="packingResultTitle"
                         class="section-title">
-
                         Hasil scan packing
-
                     </div>
 
                     <div
                         id="packingResultSubtitle"
                         class="packing-result-subtitle">
-
                         Pilih DPV untuk melihat hasil scan.
-
                     </div>
-
                 </div>
 
                 <button
@@ -451,18 +381,14 @@ function preparePackingLayout() {
                     class="btn btn-primary"
                     type="button"
                     disabled>
-
                     Selesaikan Packing
-
                 </button>
-
             </div>
 
             <div
                 id="packingResultRows"
                 class="table-wrap">
             </div>
-
         </section>
     `;
 
@@ -534,10 +460,7 @@ function showShipmentSelectModal() {
 
     stopPackingCamera();
 
-    const availableShipments = (Array.isArray(shipments) ? shipments : [])
-        .filter((shipment) => isPackingStatus(shipment))
-        .map((shipment) => getShipmentId(shipment))
-        .filter(Boolean);
+    const availableShipments = (Array.isArray(shipments) ? shipments : []).filter(isPackingStatus).map(getShipmentId).filter(Boolean);
 
     if (!availableShipments.length) {
         toast("Tidak ada DPV yang tersedia untuk Packing.", true);
@@ -549,19 +472,13 @@ function showShipmentSelectModal() {
 
     content.innerHTML = `
         <div class="shipment-modal-dialog dpv-selector-dialog">
-
             <div class="shipment-modal-header">
-
                 <div>
-
-                    <h3>
-                        Pilih DPV
-                    </h3>
+                    <h3>Pilih DPV</h3>
 
                     <p>
                         Pilih DPV yang akan digunakan untuk Packing.
                     </p>
-
                 </div>
 
                 <button
@@ -569,22 +486,15 @@ function showShipmentSelectModal() {
                     class="shipment-modal-close"
                     data-packing-dpv-close
                     aria-label="Tutup">
-
                     ×
-
                 </button>
-
             </div>
 
             <div class="shipment-modal-body">
-
                 <div class="shipment-field">
-
                     <label
                         for="packingShipmentModalSelect">
-
                         DPV
-
                     </label>
 
                     <select
@@ -601,29 +511,21 @@ function showShipmentSelectModal() {
                                     <option
                                         value="${esc(id)}"
                                         ${id === selectedDpvId ? "selected" : ""}>
-
                                         ${esc(id)}
-
                                     </option>
                                 `,
                             )
                             .join("")}
-
                     </select>
-
                 </div>
-
             </div>
 
             <div class="shipment-modal-footer">
-
                 <button
                     type="button"
                     class="btn btn-soft"
                     data-packing-dpv-close>
-
                     Batal
-
                 </button>
 
                 <button
@@ -631,13 +533,9 @@ function showShipmentSelectModal() {
                     type="button"
                     class="btn btn-primary"
                     ${selectedDpvId ? "" : "disabled"}>
-
                     Lanjut
-
                 </button>
-
             </div>
-
         </div>
     `;
 
@@ -744,17 +642,13 @@ function renderLastError(message) {
         <div
             class="last-title"
             style="color:var(--danger)">
-
             SCAN GAGAL
-
         </div>
 
         <div
             class="last-name"
             style="color:var(--danger)">
-
             UPC Tidak Ditemukan
-
         </div>
 
         <div class="last-meta">
@@ -776,48 +670,24 @@ function renderHistory() {
 
     container.innerHTML = `
         <table class="table">
-
             <thead>
-
                 <tr>
-
-                    <th>
-                        UPC
-                    </th>
-
-                    <th>
-                        SKU
-                    </th>
-
-                    <th>
-                        Nama Barang
-                    </th>
-
-                    <th>
-                        Qty
-                    </th>
-
-                    <th>
-                        Nama Petugas
-                    </th>
-
-                    <th>
-                        Timestamp
-                    </th>
-
+                    <th>UPC</th>
+                    <th>SKU</th>
+                    <th>Nama Barang</th>
+                    <th>Qty</th>
+                    <th>Nama Petugas</th>
+                    <th>Timestamp</th>
                 </tr>
-
             </thead>
 
             <tbody>
-
                 ${
                     rows.length
                         ? rows
                               .map(
                                   (row) => `
                                     <tr>
-
                                         <td>
                                             ${esc(row.upc)}
                                         </td>
@@ -841,28 +711,21 @@ function renderHistory() {
                                         <td>
                                             ${timestampHtml(row.timestamp)}
                                         </td>
-
                                     </tr>
                                 `,
                               )
                               .join("")
                         : `
                             <tr>
-
                                 <td
                                     colspan="6"
                                     class="packing-result-empty">
-
                                     Belum ada riwayat scan hari ini.
-
                                 </td>
-
                             </tr>
                         `
                 }
-
             </tbody>
-
         </table>
     `;
 }
@@ -892,49 +755,24 @@ function renderPackingResult() {
                 class="table packing-result-table">
 
                 <thead>
-
                     <tr>
-
-                        <th>
-                            UPC
-                        </th>
-
-                        <th>
-                            SKU
-                        </th>
-
-                        <th>
-                            Nama Barang
-                        </th>
-
-                        <th>
-                            Qty
-                        </th>
-
-                        <th>
-                            Last Update
-                        </th>
-
+                        <th>UPC</th>
+                        <th>SKU</th>
+                        <th>Nama Barang</th>
+                        <th>Qty</th>
+                        <th>Last Update</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
-
                     <tr>
-
                         <td
                             colspan="5"
                             class="packing-result-empty">
-
                             Pilih DPV untuk melihat hasil scan.
-
                         </td>
-
                     </tr>
-
                 </tbody>
-
             </table>
         `;
 
@@ -993,42 +831,22 @@ function renderPackingResult() {
             class="table packing-result-table">
 
             <thead>
-
                 <tr>
-
-                    <th>
-                        UPC
-                    </th>
-
-                    <th>
-                        SKU
-                    </th>
-
-                    <th>
-                        Nama Barang
-                    </th>
-
-                    <th>
-                        Qty
-                    </th>
-
-                    <th>
-                        Last Update
-                    </th>
-
+                    <th>UPC</th>
+                    <th>SKU</th>
+                    <th>Nama Barang</th>
+                    <th>Qty</th>
+                    <th>Last Update</th>
                 </tr>
-
             </thead>
 
             <tbody>
-
                 ${
                     rows.length
                         ? rows
                               .map(
                                   (row) => `
                                     <tr>
-
                                         <td>
                                             ${esc(row.upc)}
                                         </td>
@@ -1048,29 +866,22 @@ function renderPackingResult() {
                                         <td>
                                             ${timestampHtml(row.lastUpdate)}
                                         </td>
-
                                     </tr>
                                 `,
                               )
                               .join("")
                         : `
                             <tr>
-
                                 <td
                                     colspan="5"
                                     class="packing-result-empty">
-
                                     Belum ada hasil scan untuk
                                     DPV ${esc(activeShipmentId)}.
-
                                 </td>
-
                             </tr>
                         `
                 }
-
             </tbody>
-
         </table>
     `;
 }
@@ -1087,8 +898,6 @@ function renderPackingPage() {
     const manualBtn = $("packingManualFocusBtn");
 
     const finishBtn = $("finishPackingBtn");
-
-    const status = getStatus(activeShipment);
 
     const canScan = !!activeShipmentId && isPackingStatus(activeShipment);
 
@@ -1114,25 +923,13 @@ function renderPackingPage() {
 }
 
 async function loadShipments() {
-    try {
-        const response = await api("getShipments");
+    const response = await api("getShipments");
 
-        if (!response?.success) {
-            throw new Error(response?.message || "Gagal mengambil data DPV.");
-        }
-
-        shipments = getShipmentRows(response);
-
-        if (!Array.isArray(shipments)) {
-            shipments = [];
-        }
-    } catch (error) {
-        console.error("Load Packing Shipment:", error);
-
-        shipments = [];
-
-        throw error;
+    if (!response?.success) {
+        throw new Error(response?.message || "Gagal mengambil data DPV.");
     }
+
+    shipments = getShipmentRows(response);
 }
 
 async function loadTodayHistory() {
@@ -1140,10 +937,7 @@ async function loadTodayHistory() {
         const response = await api("getTodayPackingRowsForUser");
 
         if (!response?.success) {
-            console.warn("Gagal mengambil riwayat scan:", response?.message);
-
             renderHistory();
-
             return;
         }
 
@@ -1151,7 +945,6 @@ async function loadTodayHistory() {
 
         if (!Array.isArray(rows)) {
             renderHistory();
-
             return;
         }
 
@@ -1172,9 +965,7 @@ async function loadTodayHistory() {
         }));
 
         renderHistory();
-    } catch (error) {
-        console.error("Load Packing History:", error);
-
+    } catch {
         renderHistory();
     }
 }
@@ -1236,9 +1027,7 @@ async function restoreActiveShipment() {
         packingRows = getPackingRows(response);
 
         saveActiveShipment();
-    } catch (error) {
-        console.error("Restore Packing Shipment:", error);
-
+    } catch {
         activeShipmentId = "";
         activeShipment = null;
         packingRows = [];
@@ -1267,8 +1056,6 @@ export async function loadPacking() {
             }, 100);
         }
     } catch (error) {
-        console.error("Load Packing:", error);
-
         toast(error?.message || "Gagal memuat Packing.", true);
 
         renderPackingPage();
@@ -1329,8 +1116,6 @@ async function selectShipment(shipmentId) {
 
         toast(`DPV ${shipmentId} dipilih.`);
     } catch (error) {
-        console.error("Select DPV error:", error);
-
         toast(error?.message || "Gagal memilih DPV.", true);
     } finally {
         busy(false);
@@ -1439,8 +1224,6 @@ async function processScan(upc) {
 
         showPackingConfirmModal(item);
     } catch (error) {
-        console.error("Packing lookup error:", error);
-
         renderLastError(error?.message || "UPC tidak ditemukan.");
 
         toast(error?.message || "UPC tidak ditemukan.", true);
@@ -1468,7 +1251,6 @@ function showPackingConfirmModal(item) {
 
     content.innerHTML = `
         <div class="modal-head">
-
             <h3>
                 Konfirmasi Barang
             </h3>
@@ -1478,53 +1260,36 @@ function showPackingConfirmModal(item) {
                 data-action="close-modal"
                 aria-label="Tutup"
                 type="button">
-
                 ×
-
             </button>
-
         </div>
 
         <div class="scan-confirm">
-
             <div class="scan-confirm-row">
-
-                <span>
-                    UPC
-                </span>
+                <span>UPC</span>
 
                 <strong>
                     ${esc(upc)}
                 </strong>
-
             </div>
 
             <div class="scan-confirm-row">
-
-                <span>
-                    SKU
-                </span>
+                <span>SKU</span>
 
                 <strong>
                     ${esc(sku)}
                 </strong>
-
             </div>
 
             <div class="scan-confirm-row">
-
-                <span>
-                    Nama Barang
-                </span>
+                <span>Nama Barang</span>
 
                 <strong>
                     ${esc(name)}
                 </strong>
-
             </div>
 
             <div class="scan-confirm-qty">
-
                 <label for="packingQtyInput">
                     QTY
                 </label>
@@ -1539,31 +1304,23 @@ function showPackingConfirmModal(item) {
                     autocomplete="off"
                     placeholder="Masukkan jumlah"
                     value="1">
-
             </div>
 
             <div class="scan-confirm-actions">
-
                 <button
                     type="button"
                     class="btn btn-secondary"
                     data-action="close-modal">
-
                     Batal
-
                 </button>
 
                 <button
                     type="button"
                     class="btn btn-primary"
                     id="savePackingScanBtn">
-
                     Simpan
-
                 </button>
-
             </div>
-
         </div>
     `;
 
@@ -1650,8 +1407,6 @@ async function savePackingScan(shipmentId, upc, qty, item) {
 
         toast(`✓ ${resultRow.name} · Qty ${resultRow.qty}`);
     } catch (error) {
-        console.error("Save packing error:", error);
-
         toast(error?.message || "Gagal menyimpan Packing.", true);
     } finally {
         busy(false);
@@ -1760,8 +1515,6 @@ async function finishPacking() {
 
         toast("✓ Packing selesai. DPV siap Loading.");
     } catch (error) {
-        console.error("Finish packing error:", error);
-
         toast(error?.message || "Gagal menyelesaikan Packing.", true);
     } finally {
         busy(false);
@@ -1793,6 +1546,7 @@ async function requestCameraPermission() {
                 ideal: "environment",
             },
         },
+
         audio: false,
     });
 
@@ -1808,7 +1562,7 @@ async function releaseCameraPermissionStream() {
         cameraPermissionStream.getTracks().forEach((track) => {
             track.stop();
         });
-    } catch (error) {}
+    } catch {}
 
     cameraPermissionStream = null;
 }
@@ -1836,7 +1590,6 @@ function cameraPermissionMessage(error) {
 function cameraMarkup() {
     return `
         <div class="modal-head">
-
             <h3>
                 Scan dengan Kamera
             </h3>
@@ -1846,15 +1599,11 @@ function cameraMarkup() {
                 data-action="close-modal"
                 aria-label="Tutup"
                 type="button">
-
                 ×
-
             </button>
-
         </div>
 
         <div class="camera-box">
-
             <div
                 id="quaggaReader"
                 class="quagga-reader">
@@ -1885,24 +1634,18 @@ function cameraMarkup() {
                 <span
                     class="barcode-laser">
                 </span>
-
             </div>
-
         </div>
 
         <div
             class="camera-status"
             id="cameraStatus">
-
             Meminta akses kamera...
-
         </div>
 
         <div class="camera-help">
-
             Posisikan barcode mendatar di dalam
             kotak hijau.
-
         </div>
     `;
 }
@@ -2021,11 +1764,8 @@ async function openPackingCamera() {
 
                 area: {
                     top: "5%",
-
                     right: "5%",
-
                     left: "5%",
-
                     bottom: "5%",
                 },
             },
@@ -2113,8 +1853,6 @@ async function openPackingCamera() {
             status.textContent = "Kamera aktif · arahkan barcode ke kotak hijau";
         }
     } catch (error) {
-        console.error("Packing camera error:", error);
-
         packingCameraRunning = false;
 
         state.cameraRunning = false;
@@ -2141,11 +1879,11 @@ async function stopPackingCamera() {
             if (packingCameraHandler) {
                 Quagga.offDetected(packingCameraHandler);
             }
-        } catch (error) {}
+        } catch {}
 
         try {
             Quagga.stop();
-        } catch (error) {}
+        } catch {}
     }
 
     document.querySelectorAll(".camera-box video").forEach((video) => {
@@ -2155,7 +1893,7 @@ async function stopPackingCamera() {
                     track.stop();
                 });
             }
-        } catch (error) {}
+        } catch {}
     });
 
     packingCameraHandler = null;
