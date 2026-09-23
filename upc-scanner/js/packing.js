@@ -18,18 +18,6 @@ function getShipmentId(row) {
     return String(row?.shipmentId ?? row?.SHIPMENT_ID ?? row?.id ?? "").trim();
 }
 
-function getStatus(row) {
-    return String(row?.status ?? row?.STATUS ?? "")
-        .trim()
-        .toUpperCase();
-}
-
-function isPackingStatus(row) {
-    const status = getStatus(row);
-
-    return status === "PENDING" || status === "PACKING";
-}
-
 function getTodayKey() {
     const now = new Date();
 
@@ -375,14 +363,6 @@ function preparePackingLayout() {
                         Pilih DPV untuk melihat hasil scan.
                     </div>
                 </div>
-
-                <button
-                    id="finishPackingBtn"
-                    class="btn btn-primary"
-                    type="button"
-                    disabled>
-                    Selesaikan Packing
-                </button>
             </div>
 
             <div
@@ -460,7 +440,7 @@ function showShipmentSelectModal() {
 
     stopPackingCamera();
 
-    const availableShipments = (Array.isArray(shipments) ? shipments : []).filter(isPackingStatus).map(getShipmentId).filter(Boolean);
+    const availableShipments = (Array.isArray(shipments) ? shipments : []).map(getShipmentId).filter(Boolean);
 
     if (!availableShipments.length) {
         toast("Tidak ada DPV yang tersedia untuk Packing.", true);
@@ -897,9 +877,7 @@ function renderPackingPage() {
 
     const manualBtn = $("packingManualFocusBtn");
 
-    const finishBtn = $("finishPackingBtn");
-
-    const canScan = !!activeShipmentId && isPackingStatus(activeShipment);
+    const canScan = !!activeShipmentId;
 
     if (cameraBtn) {
         cameraBtn.disabled = !canScan;
@@ -913,12 +891,6 @@ function renderPackingPage() {
         input.disabled = !canScan;
 
         input.placeholder = canScan ? "Scan UPC di sini..." : "Pilih DPV terlebih dahulu...";
-    }
-
-    if (finishBtn) {
-        finishBtn.disabled = !canScan || !packingRows.length;
-
-        finishBtn.onclick = finishPacking;
     }
 }
 
@@ -1010,7 +982,7 @@ async function restoreActiveShipment() {
 
         const shipment = response.shipment || response.data?.shipment || null;
 
-        if (!shipment || !isPackingStatus(shipment)) {
+        if (!shipment) {
             clearActiveShipment();
 
             activeShipmentId = "";
@@ -1098,10 +1070,6 @@ async function selectShipment(shipmentId) {
             throw new Error("Data DPV tidak valid.");
         }
 
-        if (!isPackingStatus(shipment)) {
-            throw new Error("DPV ini tidak sedang dalam proses Packing.");
-        }
-
         activeShipmentId = shipmentId;
 
         activeShipment = shipment;
@@ -1179,12 +1147,6 @@ async function processScan(upc) {
         toast("Pilih DPV terlebih dahulu.", true);
 
         focusPackingInput();
-
-        return;
-    }
-
-    if (!isPackingStatus(activeShipment)) {
-        toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
     }
@@ -1447,82 +1409,6 @@ async function refreshActiveShipment() {
     renderPackingPage();
 }
 
-async function finishPacking() {
-    if (!activeShipmentId) {
-        toast("Pilih DPV terlebih dahulu.", true);
-
-        return;
-    }
-
-    if (!isPackingStatus(activeShipment)) {
-        toast("DPV ini tidak sedang dalam proses Packing.", true);
-
-        return;
-    }
-
-    if (!packingRows.length) {
-        toast("Belum ada barang yang dipacking.", true);
-
-        return;
-    }
-
-    const result = await Swal.fire({
-        title: "Selesaikan Packing?",
-
-        text: "Setelah selesai, DPV siap untuk proses Loading.",
-
-        icon: "question",
-
-        showCancelButton: true,
-
-        confirmButtonText: "Ya, Selesaikan",
-
-        cancelButtonText: "Batal",
-    });
-
-    if (!result.isConfirmed) {
-        focusPackingInput();
-
-        return;
-    }
-
-    try {
-        busy(true);
-
-        const response = await api("finishPacking", {
-            shipmentId: activeShipmentId,
-        });
-
-        if (!response?.success) {
-            throw new Error(response?.message || "Gagal menyelesaikan Packing.");
-        }
-
-        activeShipment = response.shipment ||
-            response.data?.shipment || {
-                ...activeShipment,
-                status: "READY LOADING",
-            };
-
-        await stopPackingCamera();
-
-        await refreshActiveShipment();
-
-        await loadShipments();
-
-        await loadTodayHistory();
-
-        renderPackingPage();
-
-        toast("✓ Packing selesai. DPV siap Loading.");
-    } catch (error) {
-        toast(error?.message || "Gagal menyelesaikan Packing.", true);
-    } finally {
-        busy(false);
-
-        focusPackingInput();
-    }
-}
-
 function getQuagga() {
     return window.Quagga || window.quagga || null;
 }
@@ -1693,12 +1579,6 @@ function fixCameraDisplay() {
 async function openPackingCamera() {
     if (!activeShipmentId) {
         toast("Pilih DPV terlebih dahulu.", true);
-
-        return;
-    }
-
-    if (!isPackingStatus(activeShipment)) {
-        toast("DPV ini tidak sedang dalam proses Packing.", true);
 
         return;
     }
@@ -1956,4 +1836,4 @@ export function bindPacking() {
     preparePackingLayout();
 }
 
-export { processScan, finishPacking };
+export { processScan };

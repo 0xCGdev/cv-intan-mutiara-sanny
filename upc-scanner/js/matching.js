@@ -231,7 +231,7 @@ function prepareMatchingLayout() {
                 <div class="matching-summary-item">
 
                     <div class="matching-summary-label">
-                        Total Packing
+                        Total Scan Packing
                     </div>
 
                     <div
@@ -245,7 +245,7 @@ function prepareMatchingLayout() {
                 <div class="matching-summary-item">
 
                     <div class="matching-summary-label">
-                        Total Loading
+                        Total Scan Loading
                     </div>
 
                     <div
