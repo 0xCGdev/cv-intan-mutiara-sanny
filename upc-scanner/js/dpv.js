@@ -332,7 +332,7 @@ function renderActiveDPVPlaceholder() {
     box.innerHTML = `
         <div class="shipment-empty">
             <div class="shipment-empty-title">
-                Memuat DPV ${esc(activeDpvId)}...
+                Memuat ${esc(activeDpvId)}...
             </div>
 
             <div class="shipment-empty-text">
@@ -588,7 +588,7 @@ function renderDPVTable(dpv, resetPage = true) {
         box.innerHTML = `
             <div class="shipment-empty">
                 <div class="shipment-empty-title">
-                    DPV ${esc(activeDpvId)} belum memiliki data.
+                    ${esc(activeDpvId)} belum memiliki data.
                 </div>
 
                 <div class="shipment-empty-text">
@@ -1198,7 +1198,7 @@ async function createDPV() {
     const exists = dpvRows.some((row) => getDpvId(row).toLowerCase() === shipmentId.toLowerCase());
 
     if (exists) {
-        toast(`DPV ${shipmentId} sudah ada.`, true);
+        toast(`${shipmentId} sudah ada.`, true);
         return;
     }
 
@@ -1230,7 +1230,7 @@ async function createDPV() {
 
         await loadActiveDPV();
 
-        toast(`DPV ${shipmentId} berhasil dibuat.`);
+        toast(`${shipmentId} berhasil dibuat.`);
     } catch (error) {
         toast(error?.message || "Gagal membuat DPV.", true);
     } finally {
@@ -1298,7 +1298,7 @@ async function handleImportFile(event) {
 
         await loadActiveDPV();
 
-        toast(result?.message || `Data DPV ${activeDpvId} berhasil diimport.`);
+        toast(result?.message || `Data ${activeDpvId} berhasil diimport.`);
     } catch (error) {
         toast(error?.message || "Gagal import data DPV.", true);
     } finally {
@@ -1321,10 +1321,10 @@ async function parseImportFile(file) {
         throw new Error("File Excel tidak memiliki sheet.");
     }
 
-    const sheetName = workbook.SheetNames.find((name) => String(name).trim().toUpperCase() === "K2");
+    const sheetName = workbook.SheetNames[0];
 
     if (!sheetName) {
-        throw new Error("Sheet K2 tidak ditemukan di file Excel.");
+        throw new Error("File Excel tidak memiliki sheet.");
     }
 
     const sheet = workbook.Sheets[sheetName];
@@ -1337,7 +1337,7 @@ async function parseImportFile(file) {
     });
 
     if (rows.length < 2) {
-        throw new Error("Sheet K2 tidak memiliki data barang.");
+        throw new Error("Sheet pertama tidak memiliki data barang.");
     }
 
     const items = [];
@@ -1379,7 +1379,7 @@ async function parseImportFile(file) {
     }
 
     if (!items.length) {
-        throw new Error("Tidak ditemukan data barang valid pada sheet K2.");
+        throw new Error("Tidak ditemukan data barang valid pada sheet pertama.");
     }
 
     return items;
@@ -1508,7 +1508,7 @@ async function handleDeleteDPV() {
 
     const shipmentId = activeDpvId;
 
-    const confirmed = window.confirm(`Hapus DPV ${shipmentId}?\n\nData DPV dan data terkait akan dihapus. Tindakan ini tidak dapat dibatalkan.`);
+    const confirmed = window.confirm(`Hapus ${shipmentId}?\n\nData DPV dan data terkait akan dihapus. Tindakan ini tidak dapat dibatalkan.`);
 
     if (!confirmed) {
         return;
@@ -1536,7 +1536,7 @@ async function handleDeleteDPV() {
 
         renderDPVPage();
 
-        toast(result?.message || `DPV ${shipmentId} berhasil dihapus.`);
+        toast(result?.message || `${shipmentId} berhasil dihapus.`);
     } catch (error) {
         toast(error?.message || "Gagal menghapus DPV.", true);
     } finally {
