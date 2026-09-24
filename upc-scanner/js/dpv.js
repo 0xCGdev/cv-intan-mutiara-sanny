@@ -80,6 +80,37 @@ const ICONS = {
         </svg>
     `,
 
+    edit: `
+        <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+        </svg>
+    `,
+
+    check: `
+        <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
+            <path d="m5 12 4 4L19 6"></path>
+        </svg>
+    `,
+
     chevron: `
         <svg
             viewBox="0 0 24 24"
@@ -423,12 +454,124 @@ function renderCurrentDPVTable() {
     renderDPVTable(dpv, false);
 }
 
+function ensureDPVLabelStyles() {
+    if (document.querySelector("style[data-dpv-label-style]")) {
+        return;
+    }
+
+    const style = document.createElement("style");
+
+    style.dataset.dpvLabelStyle = "true";
+    style.textContent = `
+        .dpv-label-cell {
+            text-align: center;
+        }
+
+        .dpv-label-display {
+            position: relative;
+            display: block;
+            width: 100%;
+            min-height: 28px;
+            line-height: 28px;
+            text-align: center;
+        }
+
+        .dpv-label-value {
+            display: block;
+            width: 100%;
+            text-align: center;
+        }
+
+        .dpv-label-edit {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-50%);
+            transition: opacity 0.15s ease, visibility 0.15s ease;
+        }
+
+        .dpv-label-display:hover .dpv-label-edit,
+        .dpv-label-edit:focus-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .dpv-label-edit:hover {
+            color: #166534;
+        }
+
+        .dpv-label-editing {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .dpv-label-editing .dpv-label-input {
+            width: 72px;
+            height: 32px;
+            min-height: 32px;
+            padding: 4px 8px;
+            text-align: center;
+            border-radius: 7px;
+        }
+
+        .dpv-label-done {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border: 0;
+            border-radius: 7px;
+            background: #166534;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .dpv-label-done:hover {
+            background: #14532d;
+        }
+
+        .dpv-table-container .table thead th {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .dpv-table-container .table tbody td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .dpv-table-container .table tbody td:nth-child(3) {
+            text-align: left;
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
 function renderDPVTable(dpv, resetPage = true) {
     const box = $("shipmentRows");
 
     if (!box) {
         return;
     }
+
+    ensureDPVLabelStyles();
 
     box.className = "dpv-table-container";
     box.__dpvData = dpv;
@@ -492,6 +635,7 @@ function renderDPVTable(dpv, resetPage = true) {
                         <th>UPC</th>
                         <th>Nama Barang</th>
                         <th>Qty</th>
+                        <th>Label Diserahkan</th>
                     </tr>
                 </thead>
 
@@ -517,6 +661,24 @@ function renderDPVTable(dpv, resetPage = true) {
                                             ${esc(item?.qtyTarget ?? item?.qty ?? 0)}
                                         </span>
                                     </td>
+
+                                    <td class="dpv-label-cell">
+                                        <div class="dpv-label-display">
+                                            <span class="dpv-label-value">
+                                                ${Number(item?.labelDiserahkan || 0) > 0 ? esc(item.labelDiserahkan) : "-"}
+                                            </span>
+
+                                            <button
+                                                type="button"
+                                                class="dpv-label-edit"
+                                                data-label-sku="${esc(item?.sku || "")}"
+                                                aria-label="Edit Label Diserahkan ${esc(item?.sku || "")}"
+                                                title="Edit Label Diserahkan">
+                                                ${ICONS.edit}
+                                            </button>
+                                        </div>
+                                    </td>
+
                                 </tr>
                             `,
                         )
@@ -528,7 +690,150 @@ function renderDPVTable(dpv, resetPage = true) {
         ${totalPages > 1 ? renderDPVPagination(totalPages) : ""}
     `;
 
+    bindDPVLabelActions();
     bindDPVPagination(totalPages);
+}
+
+function bindDPVLabelActions() {
+    const box = $("shipmentRows");
+
+    if (!box) {
+        return;
+    }
+
+    box.querySelectorAll(".dpv-label-edit").forEach((button) => {
+        if (button.dataset.labelBound === "true") {
+            return;
+        }
+
+        button.dataset.labelBound = "true";
+
+        button.addEventListener("click", () => {
+            const sku = String(button.dataset.labelSku || "").trim();
+            const cell = button.closest(".dpv-label-cell");
+
+            if (!sku || !cell) {
+                return;
+            }
+
+            box.querySelectorAll(".dpv-label-editing").forEach((editing) => {
+                const editingCell = editing.closest(".dpv-label-cell");
+
+                if (!editingCell || editingCell === cell) {
+                    return;
+                }
+
+                const editingSku = String(editing.querySelector(".dpv-label-input")?.dataset.labelSku || "").trim();
+
+                const currentValue = String(box.__dpvData?.items?.find((item) => String(item?.sku || "").trim() === editingSku)?.labelDiserahkan ?? 0).trim();
+
+                editingCell.innerHTML = `
+                    <div class="dpv-label-display">
+                        <span class="dpv-label-value">
+                            ${Number(currentValue || 0) > 0 ? esc(currentValue) : "-"}
+                        </span>
+
+                        <button
+                            type="button"
+                            class="dpv-label-edit"
+                            data-label-sku="${esc(editingSku)}"
+                            aria-label="Edit Label Diserahkan ${esc(editingSku)}"
+                            title="Edit Label Diserahkan">
+                            ${ICONS.edit}
+                        </button>
+                    </div>
+                `;
+            });
+
+            bindDPVLabelActions();
+
+            const currentValue = String(box.__dpvData?.items?.find((item) => String(item?.sku || "").trim() === sku)?.labelDiserahkan ?? "").trim();
+
+            cell.innerHTML = `
+                <div class="dpv-label-editing">
+                    <input
+                        class="input dpv-label-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="${currentValue && Number(currentValue) > 0 ? esc(currentValue) : ""}"
+                        data-label-sku="${esc(sku)}"
+                        aria-label="Label Diserahkan ${esc(sku)}">
+
+                    <button
+                        type="button"
+                        class="dpv-label-done"
+                        data-label-sku="${esc(sku)}"
+                        aria-label="Selesai"
+                        title="Selesai">
+                        ${ICONS.check}
+                    </button>
+                </div>
+            `;
+
+            const input = cell.querySelector(".dpv-label-input");
+            input?.focus();
+            input?.select();
+
+            const saveButton = cell.querySelector(".dpv-label-done");
+
+            saveButton?.addEventListener("click", () => {
+                saveDPVLabel(sku, input);
+            });
+
+            input?.addEventListener("keydown", (event) => {
+                if (event.key !== "Enter") {
+                    return;
+                }
+
+                event.preventDefault();
+                saveDPVLabel(sku, input);
+            });
+        });
+    });
+}
+
+async function saveDPVLabel(sku, input) {
+    const valueText = String(input?.value || "").trim();
+    const value = valueText === "" ? 0 : Number(valueText);
+    const shipmentId = String(activeDpvId || localStorage.getItem("active_dpv") || "").trim();
+
+    if (!shipmentId) {
+        toast("DPV wajib dipilih.", true);
+        return;
+    }
+
+    if (!sku) {
+        toast("SKU wajib diisi.", true);
+        return;
+    }
+
+    if (!Number.isInteger(value) || value < 0) {
+        toast("Label Diserahkan harus berupa angka bulat 0 atau lebih.", true);
+        return;
+    }
+
+    try {
+        busy(true);
+
+        const result = await api("updateLabelDiserahkan", {
+            shipmentId,
+            sku,
+            labelDiserahkan: value,
+        });
+
+        if (!result?.success) {
+            throw new Error(result?.message || "Gagal menyimpan Label Diserahkan.");
+        }
+
+        renderDPVTable(result.shipment, false);
+
+        toast(result.message || "Label Diserahkan berhasil disimpan.");
+    } catch (error) {
+        toast(error?.message || "Gagal menyimpan Label Diserahkan.", true);
+    } finally {
+        busy(false);
+    }
 }
 
 function renderDPVPagination(totalPages) {
