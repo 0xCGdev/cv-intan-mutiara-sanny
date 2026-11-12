@@ -49,11 +49,14 @@ const catalogueCount = document.getElementById("catalogueProductCount");
 const catalogueEmpty = document.getElementById("catalogueEmpty");
 const catalogueSort = document.getElementById("catalogueSort");
 const collectionFilters = document.querySelectorAll(".collection-filter");
+const subcategoryFilters = document.querySelectorAll(".subcategory-filter");
+const categoryGroups = document.querySelectorAll(".category-group");
 const materialFilters = document.querySelectorAll('.material-option input[type="checkbox"]');
 
 if (catalogueGrid) {
     const productCards = Array.from(catalogueGrid.querySelectorAll(".catalogue-card"));
     let activeCategory = "all";
+    let activeSubcategory = "";
 
     const updateCatalogue = () => {
         const selectedMaterials = Array.from(materialFilters)
@@ -62,66 +65,136 @@ if (catalogueGrid) {
 
         const visibleCards = productCards.filter((card) => {
             const categoryMatch = activeCategory === "all" || card.dataset.category === activeCategory;
+            const subcategoryMatch = !activeSubcategory || card.dataset.subcategory === activeSubcategory;
             const cardMaterials = (card.dataset.material || "").split(/\s+/).filter(Boolean);
             const materialMatch = selectedMaterials.length === 0 || selectedMaterials.some((material) => cardMaterials.includes(material));
-            const isVisible = categoryMatch && materialMatch;
-
+            const isVisible = categoryMatch && subcategoryMatch && materialMatch;
             card.hidden = !isVisible;
             return isVisible;
         });
 
         const sortValue = catalogueSort ? catalogueSort.value : "newest";
         const sortedCards = [...visibleCards];
-
         sortedCards.sort((a, b) => {
             const nameA = (a.dataset.name || "").toLocaleLowerCase();
             const nameB = (b.dataset.name || "").toLocaleLowerCase();
             const dateA = Number(a.dataset.date || 0);
             const dateB = Number(b.dataset.date || 0);
-
             if (sortValue === "oldest") return dateA - dateB;
             if (sortValue === "az") return nameA.localeCompare(nameB);
             if (sortValue === "za") return nameB.localeCompare(nameA);
             return dateB - dateA;
         });
-
         sortedCards.forEach((card) => catalogueGrid.appendChild(card));
 
         if (catalogueCount) {
-            catalogueCount.textContent = String(visibleCards.length).padStart(2, "0");
+            catalogueCount.textContent = String(visibleCards.length);
+            const productLabel = catalogueCount.nextSibling;
+            if (productLabel && productLabel.nodeType === Node.TEXT_NODE) {
+                productLabel.textContent = visibleCards.length === 1 ? " Product" : " Products";
+            }
         }
-
         if (catalogueEmpty) {
             catalogueEmpty.hidden = visibleCards.length !== 0;
+            catalogueEmpty.classList.toggle("subcategory-empty", Boolean(activeSubcategory) && visibleCards.length === 0);
+            const emptyHeading = catalogueEmpty.querySelector("h3");
+            const emptyDescription = catalogueEmpty.querySelector("p");
+            if (activeSubcategory && visibleCards.length === 0) {
+                if (emptyHeading) emptyHeading.textContent = "Coming Soon";
+                if (emptyDescription) emptyDescription.textContent = "This collection is being prepared.";
+            } else {
+                if (emptyHeading) emptyHeading.textContent = "No products found";
+                if (emptyDescription) emptyDescription.textContent = "Try selecting another category or material.";
+            }
         }
 
-        collectionFilters.forEach((button) => {
-            const category = button.dataset.category;
-            const count = category === "all" ? productCards.length : productCards.filter((card) => card.dataset.category === category).length;
-            const countElement = button.querySelector(".filter-count");
-
-            if (countElement) {
-                countElement.textContent = String(count).padStart(2, "0");
+        const allCategoriesButton = document.querySelector('.collection-filter[data-category="all"]');
+        if (allCategoriesButton) {
+            let allCount = allCategoriesButton.querySelector(".filter-count");
+            if (!allCount) {
+                allCount = document.createElement("span");
+                allCount.className = "filter-count";
+                allCategoriesButton.appendChild(allCount);
             }
+            allCount.textContent = `(${productCards.length})`;
+        }
+
+        subcategoryFilters.forEach((button) => {
+            const category = button.dataset.category || "";
+            const subcategory = button.dataset.subcategory || "";
+            const count = productCards.filter((card) => card.dataset.category === category && card.dataset.subcategory === subcategory).length;
+            let countElement = button.querySelector(".filter-count");
+            if (!countElement) {
+                countElement = document.createElement("span");
+                countElement.className = "filter-count";
+                button.appendChild(countElement);
+            }
+            countElement.textContent = String(count);
         });
+    };
+
+    const clearActiveFilters = () => {
+        collectionFilters.forEach((filter) => filter.classList.remove("active"));
+        subcategoryFilters.forEach((filter) => filter.classList.remove("active"));
     };
 
     collectionFilters.forEach((button) => {
         button.addEventListener("click", () => {
+            const category = button.dataset.category || "all";
+            if (category !== "all" && button.classList.contains("category-parent")) {
+                const group = button.closest(".category-group");
+                const willExpand = group && !group.classList.contains("is-expanded");
+                categoryGroups.forEach((item) => item.classList.remove("is-expanded"));
+                if (group && willExpand) group.classList.add("is-expanded");
+            } else if (category === "all") {
+                categoryGroups.forEach((item) => item.classList.remove("is-expanded"));
+            }
+
+            activeCategory = category;
+            activeSubcategory = "";
+            clearActiveFilters();
+            button.classList.add("active");
+            updateCatalogue();
+        });
+    });
+
+    subcategoryFilters.forEach((button) => {
+        button.addEventListener("click", () => {
             activeCategory = button.dataset.category || "all";
-            collectionFilters.forEach((filter) => {
-                filter.classList.toggle("active", filter === button);
-            });
+            activeSubcategory = button.dataset.subcategory || "";
+            clearActiveFilters();
+            const parent = button.closest(".category-group")?.querySelector(".category-parent");
+            if (parent) parent.classList.add("active");
+            button.classList.add("active");
             updateCatalogue();
         });
     });
 
     materialFilters.forEach((input) => input.addEventListener("change", updateCatalogue));
+    if (catalogueSort) catalogueSort.addEventListener("change", updateCatalogue);
 
-    if (catalogueSort) {
-        catalogueSort.addEventListener("change", updateCatalogue);
+    const filterToggle = document.getElementById("catalogueFilterToggle");
+    const filterPopup = document.getElementById("catalogueFilterPopup");
+    const filterClose = document.getElementById("catalogueFilterClose");
+    const closeFilterPopup = () => {
+        if (!filterPopup || !filterToggle) return;
+        filterPopup.hidden = true;
+        filterToggle.setAttribute("aria-expanded", "false");
+    };
+    if (filterToggle && filterPopup) {
+        filterToggle.addEventListener("click", () => {
+            const isOpening = filterPopup.hidden;
+            filterPopup.hidden = !isOpening;
+            filterToggle.setAttribute("aria-expanded", String(isOpening));
+        });
+        filterClose?.addEventListener("click", closeFilterPopup);
+        document.addEventListener("click", (event) => {
+            if (!filterPopup.hidden && !filterPopup.contains(event.target) && !filterToggle.contains(event.target)) closeFilterPopup();
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") closeFilterPopup();
+        });
     }
-
     updateCatalogue();
 }
 
@@ -133,7 +206,8 @@ const detailProductCode = document.getElementById("detailProductCode");
 const detailProductMaterial = document.getElementById("detailProductMaterial");
 const detailProductCollection = document.getElementById("detailProductCollection");
 const detailProductDescription = document.getElementById("detailProductDescription");
-const detailQuoteLink = document.getElementById("detailQuoteLink");
+const detailProductWeight = document.getElementById("detailProductWeight");
+const detailProductDimensions = document.getElementById("detailProductDimensions");
 let previousDetailFocus = null;
 
 const materialLabels = {
@@ -180,15 +254,21 @@ const openProductDetail = (card, trigger) => {
     if (detailProductName) detailProductName.textContent = productName || "Product Details";
     if (detailProductCode) detailProductCode.textContent = productCode ? `Product Code: ${productCode}` : "";
     if (detailProductMaterial) detailProductMaterial.textContent = materialText || "Please enquire";
-    if (detailProductCollection) detailProductCollection.textContent = collectionLabels[category] || category || "Unlimited4Decor Collection";
+    const subcategory = (card.dataset.subcategory || "").trim();
+    const categoryLabels = { "home-decor": "Home Decor", "garden-decor": "Garden Decor", "engraving-stones": "Engraving Stones" };
+    const subcategoryButton = document.querySelector(`.subcategory-filter[data-category="${category}"][data-subcategory="${subcategory}"]`);
+    const subcategoryLabel = subcategoryButton
+        ? Array.from(subcategoryButton.childNodes)
+              .filter((node) => node.nodeType === Node.TEXT_NODE)
+              .map((node) => node.textContent.trim())
+              .filter(Boolean)
+              .join(" ")
+        : subcategory.replace(/-/g, " ");
+    if (detailProductCollection) detailProductCollection.textContent = [categoryLabels[category] || category, subcategoryLabel].filter(Boolean).join(" — ");
+    if (detailProductWeight) detailProductWeight.textContent = card.dataset.weight || "—";
+    if (detailProductDimensions) detailProductDimensions.textContent = card.dataset.dimensions || "—";
     if (detailProductDescription) {
         detailProductDescription.textContent = card.dataset.description || productDescriptions[productCode] || "A decorative piece from the Unlimited4Decor collection. Contact our team for further product information.";
-    }
-
-    if (detailQuoteLink) {
-        const quoteMessage = `I would like to request a quote for ${productName || "this product"}${productCode ? ` (Code: ${productCode})` : ""}.`;
-        detailQuoteLink.href = `#contact`;
-        detailQuoteLink.dataset.quoteMessage = quoteMessage;
     }
 
     previousDetailFocus = trigger || document.activeElement;
@@ -210,12 +290,6 @@ const closeProductDetail = (restoreFocus = true) => {
         previousDetailFocus.focus();
     }
 };
-
-if (detailQuoteLink) {
-    detailQuoteLink.addEventListener("click", () => {
-        closeProductDetail(false);
-    });
-}
 
 if (catalogueGrid && productDetailModal) {
     catalogueGrid.addEventListener("click", (event) => {
@@ -311,6 +385,24 @@ if (contactForm && submitButton && submitMessage) {
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = "Request a Quote";
+        }
+    });
+}
+
+const aboutReadMore = document.getElementById("aboutReadMore");
+const aboutDetails = document.getElementById("aboutDetails");
+
+if (aboutReadMore && aboutDetails) {
+    aboutReadMore.addEventListener("click", () => {
+        const isExpanded = aboutReadMore.getAttribute("aria-expanded") === "true";
+        aboutReadMore.setAttribute("aria-expanded", String(!isExpanded));
+        aboutDetails.hidden = isExpanded;
+        aboutReadMore.querySelector("span").textContent = isExpanded ? "Read More" : "Read Less";
+
+        if (!isExpanded) {
+            requestAnimationFrame(() => {
+                aboutDetails.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
         }
     });
 }
