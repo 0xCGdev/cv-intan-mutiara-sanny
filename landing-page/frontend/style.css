@@ -841,18 +841,6 @@ nav.links a:hover::after {
     pointer-events: none;
 }
 
-.about-visual .frame img {
-    width: 100%;
-    height: clamp(340px, 48vw, 570px);
-    object-fit: cover;
-    object-position: center;
-    transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.about-visual .frame:hover img {
-    transform: scale(1.035);
-}
-
 .about-copy {
     min-width: 0;
     max-width: 700px;
@@ -1817,10 +1805,6 @@ footer ul li a:hover {
         margin: 0 auto;
     }
 
-    .about-visual .frame img {
-        height: clamp(360px, 62vw, 500px);
-    }
-
     .about-copy {
         max-width: 720px;
         margin: 0 auto;
@@ -1844,10 +1828,6 @@ footer ul li a:hover {
         min-height: 280px;
         border-width: 5px;
         border-radius: 19px;
-    }
-
-    .about-visual .frame img {
-        height: 310px;
     }
 
     .about-copy h2 {
@@ -2530,8 +2510,7 @@ body.detail-modal-open {
     pointer-events: none;
 }
 
-.about-visual .frame img,
-.about-visual .frame video {
+.about-visual .frame .about-visual .frame video {
     display: block;
     width: 100%;
     height: 100%;
@@ -2546,8 +2525,7 @@ body.detail-modal-open {
     inset: 0;
 }
 
-.about-visual .frame:hover img,
-.about-visual .frame:hover video {
+.about-visual .frame:hover .about-visual .frame:hover video {
     transform: scale(1.025);
 }
 
@@ -2663,8 +2641,7 @@ body.detail-modal-open {
         transform: translateX(-50%);
     }
 
-    .about-visual .frame img,
-    .about-visual .frame video {
+    .about-visual .frame .about-visual .frame video {
         min-height: 0;
         height: 470px;
     }
@@ -2699,8 +2676,7 @@ body.detail-modal-open {
         transform: translateX(-50%);
     }
 
-    .about-visual .frame img,
-    .about-visual .frame video {
+    .about-visual .frame .about-visual .frame video {
         min-height: 0;
         height: 390px;
         object-position: center;
@@ -2796,8 +2772,7 @@ body.detail-modal-open {
     display: none;
 }
 
-.about-visual .frame img,
-.about-visual .frame video {
+.about-visual .frame .about-visual .frame video {
     display: block;
     width: 100%;
     height: 100%;
@@ -2806,8 +2781,7 @@ body.detail-modal-open {
     transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.about-visual .frame:hover img,
-.about-visual .frame:hover video {
+.about-visual .frame:hover .about-visual .frame:hover video {
     transform: scale(1.025);
 }
 
@@ -3043,8 +3017,7 @@ body.detail-modal-open {
     box-shadow: 0 18px 44px -30px rgba(28, 46, 22, 0.34);
 }
 
-.about-visual .frame img,
-.about-visual .frame video {
+.about-visual .frame .about-visual .frame video {
     display: block;
     width: 100%;
     height: 100%;
@@ -3205,8 +3178,7 @@ body.detail-modal-open {
     display: none;
 }
 
-.about-visual .frame img,
-.about-visual .frame video {
+.about-visual .frame .about-visual .frame video {
     display: block;
     width: 100%;
     height: 100%;
@@ -4219,4 +4191,44 @@ body.detail-modal-open {
         padding-left: 2px;
         padding-right: 2px;
     }
+}
+
+.about-visual::before {
+    display: none;
+    content: none;
+}
+
+.about-visual .frame {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.about-visual .frame::after {
+    display: none;
+    content: none;
+}
+
+.about-visual .frame video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: cover;
+    object-position: center;
+    border-radius: inherit;
+    transform: scale(1.04);
+    transition: none;
+}
+
+.about-visual .frame:hover video {
+    transform: scale(1.04);
 }
