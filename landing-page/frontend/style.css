@@ -888,7 +888,8 @@ nav.links a:hover::after {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-auto-rows: max-content;
     gap: 22px 20px;
-    max-height: 680px;
+    height: 750px;
+    max-height: 800px;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 2px 8px 12px 2px;
@@ -1392,7 +1393,8 @@ footer ul li a:hover {
     .catalogue-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px 16px;
-        max-height: 640px;
+        height: 700px;
+        max-height: 700px;
     }
 }
 
@@ -1418,7 +1420,8 @@ footer ul li a:hover {
     }
     .catalogue-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        max-height: 620px;
+        height: 675px;
+        max-height: 700px;
     }
 }
 
@@ -1489,7 +1492,8 @@ footer ul li a:hover {
     .catalogue-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px 10px;
-        max-height: 560px;
+        height: 590px;
+        max-height: 590px;
         padding-right: 6px;
     }
     .product-image {
@@ -3423,8 +3427,8 @@ body.detail-modal-open {
 }
 
 .catalogue-sidebar {
-    height: 680px;
-    max-height: 680px;
+    height: 740px;
+    max-height: 740px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
@@ -3450,15 +3454,16 @@ body.detail-modal-open {
 
 @media (max-width: 1200px) {
     .catalogue-sidebar {
-        height: 640px;
-        max-height: 640px;
+        height: 700px;
+        max-height: 700px;
     }
 }
 
 @media (max-width: 900px) {
     .catalogue-sidebar {
-        height: 620px;
-        max-height: 620px;
+        height: auto;
+        max-height: none;
+        overflow: visible;
     }
 }
 
@@ -4389,5 +4394,318 @@ body.detail-modal-open {
     .contact-form-field select {
         padding-right: 38px;
         background-position: right 12px center;
+    }
+}
+
+.catalogue-container {
+    grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+    gap: clamp(24px, 3vw, 38px);
+    align-items: start;
+}
+
+.catalogue-sidebar {
+    height: 750px;
+    max-height: 750px;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.catalogue-main {
+    min-width: 0;
+}
+
+.catalogue-toolbar {
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 12px;
+}
+
+.catalogue-title {
+    min-width: 0;
+}
+
+.catalogue-grid {
+    height: 750px;
+    max-height: 750px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: max-content;
+    align-content: start;
+    gap: 20px;
+    padding: 2px 8px 14px 2px;
+    overscroll-behavior: contain;
+}
+
+.catalogue-card,
+.product-open,
+.product-info {
+    min-width: 0;
+}
+
+.product-image {
+    aspect-ratio: 1 / 1;
+}
+
+.product-image img {
+    display: block;
+}
+
+.product-info {
+    min-height: 104px;
+}
+
+.product-info h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.product-info p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+    .catalogue-container {
+        grid-template-columns: minmax(210px, 235px) minmax(0, 1fr);
+        gap: 26px;
+    }
+
+    .catalogue-sidebar,
+    .catalogue-grid {
+        height: 700px;
+        max-height: 700px;
+    }
+
+    .catalogue-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px 14px;
+    }
+}
+
+@media (max-width: 900px) {
+    .catalogue {
+        padding: 58px 0 68px;
+    }
+
+    .catalogue-container {
+        width: min(100% - 40px, 820px);
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+
+    .catalogue-sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        gap: 20px;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        padding: 20px;
+    }
+
+    .catalogue-sidebar .filter-group:first-child {
+        width: 100%;
+    }
+
+    .catalogue-sidebar .collection-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 8px 12px;
+    }
+
+    .catalogue-sidebar .collection-filter[data-category="all"] {
+        grid-column: 1 / -1;
+    }
+
+    .catalogue-sidebar .category-group {
+        min-width: 0;
+    }
+
+    .catalogue-sidebar .material-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .catalogue-grid {
+        height: auto;
+        max-height: none;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        overflow: visible;
+        padding: 2px 2px 8px;
+    }
+}
+
+@media (max-width: 650px) {
+    .catalogue {
+        padding: 48px 0 58px;
+    }
+
+    .catalogue-container {
+        width: min(100% - 32px, 520px);
+        gap: 20px;
+    }
+
+    .catalogue-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 17px 13px;
+    }
+
+    .catalogue-sidebar .collection-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .catalogue-sidebar .category-group {
+        width: 100%;
+        padding-bottom: 6px;
+    }
+
+    .catalogue-sidebar .subcategory-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .catalogue-sidebar .material-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .catalogue-toolbar {
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding-bottom: 13px;
+    }
+
+    .catalogue-title h2 {
+        font-size: clamp(20px, 5vw, 23px);
+    }
+
+    .catalogue-sort {
+        gap: 6px;
+        font-size: 11px;
+    }
+
+    .catalogue-sort select {
+        min-width: 0;
+        max-width: 145px;
+        padding: 8px 25px 8px 9px;
+        font-size: 11px;
+    }
+
+    .catalogue-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 10px;
+    }
+
+    .catalogue-card {
+        border-radius: 12px;
+    }
+
+    .product-info {
+        min-height: 92px;
+        padding: 10px 34px 11px 10px;
+    }
+
+    .product-info h3 {
+        font-size: 13.5px;
+    }
+
+    .product-info p {
+        font-size: 10.5px;
+    }
+
+    .product-arrow {
+        right: 7px;
+        width: 25px;
+        height: 25px;
+        font-size: 17px;
+    }
+}
+
+@media (max-width: 380px) {
+    .catalogue-container {
+        width: min(100% - 26px, 520px);
+    }
+
+    .catalogue-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .catalogue-sort {
+        align-self: flex-end;
+    }
+
+    .catalogue-grid {
+        gap: 12px 8px;
+    }
+
+    .product-info {
+        min-height: 88px;
+        padding-right: 30px;
+    }
+
+    .product-info h3 {
+        font-size: 12.5px;
+    }
+}
+
+.catalogue-container {
+    --catalogue-two-row-height: auto;
+    align-items: stretch;
+}
+
+.catalogue-sidebar {
+    height: calc(var(--catalogue-two-row-height, 0px) + var(--catalogue-grid-offset, 0px));
+    max-height: calc(var(--catalogue-two-row-height, 0px) + var(--catalogue-grid-offset, 0px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    align-self: stretch;
+}
+
+.catalogue-grid {
+    height: auto;
+    max-height: var(--catalogue-two-row-height, none);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 900px) {
+    .catalogue-container {
+        align-items: start;
+    }
+
+    .catalogue-sidebar {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        scrollbar-gutter: auto;
+    }
+
+    .catalogue-grid {
+        height: auto;
+        max-height: var(--catalogue-two-row-height, none);
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 }

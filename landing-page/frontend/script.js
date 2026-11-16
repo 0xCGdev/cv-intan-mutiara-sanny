@@ -55,8 +55,60 @@ const materialFilters = document.querySelectorAll('.material-option input[type="
 
 if (catalogueGrid) {
     const productCards = Array.from(catalogueGrid.querySelectorAll(".catalogue-card"));
+    const catalogueContainer = catalogueGrid.closest(".catalogue-container");
     let activeCategory = "all";
     let activeSubcategory = "";
+
+    const updateCatalogueViewport = () => {
+        requestAnimationFrame(() => {
+            const visibleCards = productCards.filter((card) => !card.hidden);
+
+            if (visibleCards.length === 0) {
+                catalogueContainer?.style.setProperty("--catalogue-two-row-height", "auto");
+                catalogueContainer?.style.setProperty("--catalogue-grid-offset", "0px");
+                return;
+            }
+
+            const gridRect = catalogueGrid.getBoundingClientRect();
+            const containerRect = catalogueContainer?.getBoundingClientRect();
+            const gridOffset = containerRect ? Math.max(0, gridRect.top - containerRect.top) : 0;
+            catalogueContainer?.style.setProperty("--catalogue-grid-offset", `${Math.ceil(gridOffset)}px`);
+            const scrollOffset = catalogueGrid.scrollTop;
+            const rows = [];
+
+            visibleCards.forEach((card) => {
+                const cardRect = card.getBoundingClientRect();
+                const rowTop = Math.round(cardRect.top - gridRect.top + scrollOffset);
+                let row = rows.find((item) => Math.abs(item.top - rowTop) <= 2);
+
+                if (!row) {
+                    row = { top: rowTop, bottom: 0 };
+                    rows.push(row);
+                }
+
+                row.bottom = Math.max(row.bottom, cardRect.bottom - gridRect.top + scrollOffset);
+            });
+
+            rows.sort((a, b) => a.top - b.top);
+
+            const lastVisibleRow = rows[Math.min(1, rows.length - 1)];
+            const gridStyle = window.getComputedStyle(catalogueGrid);
+            const paddingBottom = parseFloat(gridStyle.paddingBottom) || 0;
+            const targetHeight = Math.ceil(lastVisibleRow.bottom + paddingBottom);
+
+            catalogueContainer?.style.setProperty("--catalogue-two-row-height", `${targetHeight}px`);
+        });
+    };
+
+    if ("ResizeObserver" in window) {
+        const catalogueResizeObserver = new ResizeObserver(updateCatalogueViewport);
+        productCards.forEach((card) => catalogueResizeObserver.observe(card));
+        catalogueResizeObserver.observe(catalogueGrid);
+    }
+
+    window.addEventListener("resize", updateCatalogueViewport);
+    window.addEventListener("load", updateCatalogueViewport);
+    document.fonts?.ready.then(updateCatalogueViewport);
 
     const updateCatalogue = () => {
         const selectedMaterials = Array.from(materialFilters)
@@ -86,6 +138,7 @@ if (catalogueGrid) {
             return dateB - dateA;
         });
         sortedCards.forEach((card) => catalogueGrid.appendChild(card));
+        updateCatalogueViewport();
 
         if (catalogueCount) {
             catalogueCount.textContent = String(visibleCards.length);
